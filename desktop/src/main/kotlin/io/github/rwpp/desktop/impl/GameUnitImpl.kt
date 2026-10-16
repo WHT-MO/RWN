@@ -54,6 +54,9 @@ interface GameUnitImpl : GameUnit {
     override val maxAttackRange: Float
         get() = (this as? com.corrodinggames.rts.game.units.y)?.m() ?: 0f
 
+    override val maxSight: Float
+        get() = self.V().toFloat()
+
     override val maxHealth: Float
         get() = self.cv
 }

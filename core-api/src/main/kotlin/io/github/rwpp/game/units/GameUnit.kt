@@ -19,6 +19,7 @@ interface GameUnit {
     val health: Float // hp:
     val maxHealth: Float // showHpChanges
     val maxAttackRange: Float
+    val maxSight: Float
     val target: GameUnit?
 
     var comp: UnitComp

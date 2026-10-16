@@ -24,8 +24,20 @@ import kotlin.math.ceil
 open class UnitComp {
     var showAttackRange: Boolean = false
 
+    /** 该单位的视野圈是否显示（游戏内额外按钮切换） */
+    var showVisionRange: Boolean = false
+
     // showUnitWayPoint
     open fun onDraw(unit: GameUnit, delta: Float) {
+        // 视野圈：游戏内按钮切换单个单位，或设置开启时对己方侦察单位自动显示
+        if (!unit.isDead && (showVisionRange
+                || (settings.showScoutVision
+                    && unit.player.team == game.gameRoom.localPlayer.team
+                    && unit.type.name.contains("recon", ignoreCase = true)))
+        ) {
+            drawRange(unit, unit.maxSight)
+        }
+
         if (!unit.isDead && unit.maxAttackRange > 70) {
             if (settings.showUnitTargetLine
                 && (game.gameRoom.isSinglePlayerGame || game.gameRoom.localPlayer.team == unit.player.team)

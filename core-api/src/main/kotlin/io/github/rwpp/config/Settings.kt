@@ -20,12 +20,14 @@ data class Settings(
     var showWelcomeMessage: Boolean? = null,
     var ignoreVersion: String? = null,
     var autoCheckUpdate: Boolean = false,
-    var enhancedReinforceTroops: Boolean = false,
+    var enhancedReinforceTroops: Boolean = true,
     var backgroundImagePath: String? = null,
     var selectedTheme: String? = null,
     var backgroundTransparency: Float = 0.7f,
     var backgroundImageTransparency: Float = 1f,
     var showBuildingAttackRange: Boolean = false,
+    /** 选中己方侦察单位（类型名含 recon）时显示其视野圈 */
+    var showScoutVision: Boolean = false,
     /** 迷雾巡逻反作弊档位：关闭=不巡逻, 标准=65s 重扫, 严格=20s 重扫（默认） */
     var fogPatrolLevel: String = "严格",
     var showExtraButton: Boolean = false,

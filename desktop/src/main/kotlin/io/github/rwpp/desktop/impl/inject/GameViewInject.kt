@@ -50,6 +50,9 @@ object GameViewInject {
             buttons!!.add(
                 ShowAttackRange
             )
+            buttons!!.add(
+                ShowVisionRange
+            )
         }
     }
 
@@ -74,6 +77,28 @@ object GameViewInject {
             val unit = GameEngine.B().bS.bZ.firstOrNull()
             if (unit != null) {
                 (unit as GameUnit).comp.showAttackRange = !unit.comp.showAttackRange
+            }
+            return true
+        }
+    }
+
+    object ShowVisionRange : p("c_show_vision_range") {
+        override fun b(): String? {
+            return "显示视野范围"
+        }
+
+        override fun a(): String? {
+            return "Show Vision Range"
+        }
+
+        override fun compareTo(other: Any?): Int {
+            return 0
+        }
+
+        override fun c(amVar: com.corrodinggames.rts.game.units.am?, z: Boolean): Boolean {
+            val unit = GameEngine.B().bS.bZ.firstOrNull()
+            if (unit != null) {
+                (unit as GameUnit).comp.showVisionRange = !unit.comp.showVisionRange
             }
             return true
         }

@@ -45,7 +45,6 @@ import kotlin.math.roundToInt
 @Suppress("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun SettingsView(
-    onCheckUpdate: (LatestVersionProfile) -> Unit,
     defaultTheme: String,
     onChangeTheme: (String) -> Unit,
     onChangeBackgroundImage: (String) -> Unit,
@@ -97,7 +96,6 @@ fun SettingsView(
                         "audio",
                         "developer",
                         "networking",
-                        "rwpp-client",
                         "rwpp-theme"
                     )
 
@@ -303,6 +301,14 @@ fun SettingsView(
                                             ) {
                                                 settings.showBuildingAttackRange = it
                                             }
+
+                                            SettingsSwitchComp(
+                                                "",
+                                                readI18n("settings.showScoutVision"),
+                                                settings.showScoutVision
+                                            ) {
+                                                settings.showScoutVision = it
+                                            }
                                         }
 
                                         SettingsGroup("", readI18n("settings.fogPatrol")) {
@@ -346,34 +352,6 @@ fun SettingsView(
                                         SettingsSwitchComp("showMapPingsOnBattlefield")
                                         SettingsSwitchComp("showMapPingsOnMinimap")
                                         SettingsSwitchComp("showPlayerChatInGame")
-                                    }
-
-                                    "rwpp-client" -> {
-                                        val net = koinInject<Net>()
-                                        var checking by remember { mutableStateOf(false) }
-                                        val scope = rememberCoroutineScope()
-
-                                        SettingsGroup("", readI18n("settings.client")) {
-                                            Row {
-                                                RWTextButton(readI18n("settings.checkUpdate"), modifier = Modifier.padding(5.dp)) {
-                                                    checking = true
-                                                    scope.launch(Dispatchers.IO) {
-                                                        net.getLatestVersionProfile()?.let(onCheckUpdate)
-                                                        checking = false
-                                                    }
-                                                }
-
-                                                if (checking) CircularProgressIndicator(color = MaterialTheme.colorScheme.onSecondaryContainer)
-                                            }
-
-                                            SettingsSwitchComp(
-                                                "",
-                                                readI18n("settings.autoCheckUpdate"),
-                                                settings.autoCheckUpdate
-                                            ) {
-                                                settings.autoCheckUpdate = it
-                                            }
-                                        }
                                     }
 
                                     "rwpp-theme" -> {
