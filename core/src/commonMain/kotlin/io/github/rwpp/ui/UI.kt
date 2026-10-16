@@ -181,7 +181,7 @@ open class UIProvider {
         ) {
 
             // 顶部空隙权重放大：内容整体沉向窗口下方，露出背景人物
-            Spacer(modifier = Modifier.weight(1.6f))
+            Spacer(modifier = Modifier.weight(4.2f))
 
             Text(
                 "RWNoctiluna",
