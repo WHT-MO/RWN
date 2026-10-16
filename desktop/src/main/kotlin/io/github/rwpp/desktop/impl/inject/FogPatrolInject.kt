@@ -98,22 +98,63 @@ object FogPatrolInject {
     }
 
     /**
-     * 独立重扫：把本机玩家 N 数组的可见格(<5)全部压回 5。
-     * 与原生重扫同款动作；随后引擎逐 tick 揭示会在下一 tick 重建合法视野。
+     * 独立重扫：复刻原生重扫的完整动作序列（仅省略 127 探索记忆写入——浓雾下
+     * 引擎从不写 127，写了会改变浓雾观感）：
+     * 1. 对每个单位 g(本机玩家)   —— 更新单位可见性缓存（原生 rescan 前置步骤）
+     * 2. 本机玩家 N 数组可见格(<5)压回 5 —— 与原生重扫同款动作
+     * 3. 对每个存活单位 c(false)  —— 重新揭示（关键：视野揭示是事件驱动，
+     *    静止单位不会自动重新揭示，必须主动调用，否则玩家视野永久变黑）
+     * 4. 对每个活跃单位 cX()      —— 清理迷雾边缘的隐藏单位幽灵标记
+     * 5. 标记重绘
+     *
+     * 单位列表：原生 rescan 用 GameObject.er(fastGameObjectList)；运行时类名被
+     * 混淆但字段/方法名保留（本项目反复验证），故沿 am 继承链反射查找字段 er，
+     * 反射调用其 a() 取数组。
      */
     private fun resetLocalFog() {
         runCatching {
             val local = game.gameRoom.localPlayer as? com.corrodinggames.rts.game.n ?: return
             val fog = local.N ?: return
+            // 原生 rescan 仅处理 OrderableUnit（过滤树/装饰物），照抄
+            val units = allUnits().filterIsInstance<com.corrodinggames.rts.game.units.y>()
+
+            // 1. 更新可见性缓存（原生：instanceof + bI() 检查）
+            for (u in units) if (u.bI()) u.g(local)
+
+            // 2. 压回可见格
             for (column in fog) {
                 val col = column ?: continue
                 for (i in col.indices) {
                     if (col[i] < VISIBLE_LIMIT) col[i] = VISIBLE_LIMIT
                 }
             }
+
+            // 3. 重新揭示 + 4. 幽灵清理
+            for (u in units) {
+                if (!u.bV) u.c(false)
+                if (u.bI()) u.cX()
+            }
+
             GameEngine.B().bW.O = true
         }
     }
+
+    /** 全局单位列表（GameObject.er → 反射沿 am 继承链找字段，调用其 a()） */
+    private val unitListField by lazy {
+        var c: Class<*>? = com.corrodinggames.rts.game.units.am::class.java
+        while (c != null) {
+            val f = runCatching { c!!.getDeclaredField("er").apply { isAccessible = true } }.getOrNull()
+            if (f != null) return@lazy f
+            c = c.superclass
+        }
+        null
+    }
+
+    private fun allUnits(): List<com.corrodinggames.rts.game.units.am> = runCatching {
+        val listObj = unitListField?.get(null) ?: return emptyList()
+        val arr = listObj::class.java.getMethod("a").invoke(listObj) as? Array<*> ?: return emptyList()
+        arr.filterIsInstance<com.corrodinggames.rts.game.units.am>()
+    }.getOrDefault(emptyList())
 
     /** 可见格计数突变检测（CE 全图透视的典型特征） */
     private fun b.visibleCountSpike(): Boolean {
