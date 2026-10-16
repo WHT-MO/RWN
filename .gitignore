@@ -16,13 +16,9 @@ build/
 _test_dir*
 generated_lib/
 
-# 已弃用的 RWPP 模块残留（本机文件系统锁，等重启后手动删除）
-/rwpp-android/
-/rwpp-core/
-/rwpp-core-api/
-/rwpp-desktop/
-/rwpp-ksp/
-/wix/
+# rwpp-desktop/ 为 RWPP 原始桌面模块归档（含 logo.ico/png，后续桌面
+# 快捷方式图标素材），已入库但不参与 Gradle 构建（settings.gradle.kts 未包含）
+# 其余 rwpp-* / wix 废弃目录已清理
 
 # 运行时产物
 /crashes/

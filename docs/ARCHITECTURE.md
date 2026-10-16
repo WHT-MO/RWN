@@ -11,8 +11,11 @@ RWNoctiluna/
 ├── ksp/        KSP 编译期处理器：扫描注入注解 → 生成 InjectInfo
 ├── core/       Compose UI 层：多人大厅/房间界面、widget、i18n（月轨皮肤在此实现）
 ├── desktop/    Windows 桌面入口：Main.kt 启动游戏、20 个 *Inject Hook 类
+├── rwpp-desktop/  RWPP 原始桌面模块归档（含 logo.ico/png 素材），
+│                  不参与构建（settings.gradle.kts 未 include）
 ├── docs/       设计文档与技术定位（游戏字段索引见 PHASE0-结论.md）
 ├── assets/     UI 资源（默认背景图等）
+├── dist/       发布包产物（jar + 随包 JRE + 启动脚本，不入库）
 └── scripts/    辅助脚本（setup-lib.bat 复制游戏 jar）
 ```
 
@@ -35,6 +38,10 @@ UI/逻辑模块，禁止在现有 Hook 中堆功能。
 ## 构建与运行
 
 ```bat
-scripts\setup-lib.bat        rem 首次：从游戏目录复制 game-lib.jar
-gradlew :desktop:build       rem 编译
+scripts\setup-lib.bat                          rem 首次：从游戏目录复制 game-lib.jar
+gradlew :desktop:build                         rem 编译
+gradlew :desktop:packageReleaseUberJarForCurrentOS   rem 产出可运行 fat jar
 ```
+
+发布包（随包 JRE 等）的组装方式见 `dist/` 生成过程：jdeps 分析模块依赖 →
+jlink 裁剪 JRE → zip 打包（启动脚本要求游戏根目录为工作目录）。
