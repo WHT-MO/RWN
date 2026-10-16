@@ -305,13 +305,12 @@ fun SettingsView(
                                             }
                                         }
 
-                                        SettingsGroup("", "迷雾巡逻") {
-                                            SettingsSwitchComp(
-                                                "",
-                                                "迷雾巡逻反作弊",
-                                                settings.fogPatrol
-                                            ) {
-                                                settings.fogPatrol = it
+                                        SettingsGroup("", "迷雾巡逻反作弊") {
+                                            val patrolList = Settings.fogPatrolLevels
+                                            var patrolIndex by remember { mutableIntStateOf(patrolList.indexOf(settings.fogPatrolLevel)) }
+                                            SettingsDropDown("fogPatrol", patrolList, patrolIndex) { index, level ->
+                                                patrolIndex = index
+                                                settings.fogPatrolLevel = level
                                             }
                                         }
 

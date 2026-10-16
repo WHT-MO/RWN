@@ -34,10 +34,11 @@ object FogPatrolInject {
 
     @Inject("f", injectMode = InjectMode.InsertBefore)
     fun b.onFogPatrol(delta: Float): Any {
+        val threshold = patrolThreshold
         val field = arField
-        if (settings.fogPatrol && field != null) {
+        if (threshold != null && field != null) {
             runCatching {
-                if (field.getFloat(this) > PATROL_THRESHOLD) {
+                if (field.getFloat(this) > threshold) {
                     field.setFloat(this, NATIVE_RESCAN_TRIGGER)
                 }
             }
@@ -45,6 +46,13 @@ object FogPatrolInject {
         return Unit
     }
 
-    private const val PATROL_THRESHOLD = 65.0f
+    /** 档位 -> 重扫间隔阈值（游戏时间秒），null = 关闭 */
+    private val patrolThreshold: Float?
+        get() = when (settings.fogPatrolLevel) {
+            "标准" -> 65.0f
+            "严格" -> 20.0f
+            else -> null
+        }
+
     private const val NATIVE_RESCAN_TRIGGER = 261.0f
 }

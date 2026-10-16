@@ -26,8 +26,8 @@ data class Settings(
     var backgroundTransparency: Float = 0.7f,
     var backgroundImageTransparency: Float = 1f,
     var showBuildingAttackRange: Boolean = false,
-    /** 迷雾巡逻：缩短游戏原生迷雾重扫间隔，CE 等内存修改的视野会在数秒内被重建覆盖 */
-    var fogPatrol: Boolean = true,
+    /** 迷雾巡逻反作弊档位：关闭=不巡逻, 标准=65s 重扫, 严格=20s 重扫（默认） */
+    var fogPatrolLevel: String = "严格",
     var showExtraButton: Boolean = false,
     /** @see unitAttackRangeTypes */
     var showAttackRangeUnit: String = "Never",
@@ -45,5 +45,6 @@ data class Settings(
 ) : Config {
     companion object {
         val unitAttackRangeTypes = listOf("Never", "Land", "Air", "All")
+        val fogPatrolLevels = listOf("关闭", "标准", "严格")
     }
 }
