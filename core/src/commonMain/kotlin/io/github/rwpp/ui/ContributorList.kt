@@ -18,16 +18,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.*
 import androidx.compose.ui.unit.dp
-import io.github.rwpp.net.Net
 import io.github.rwpp.platform.BackHandler
 import io.github.rwpp.widget.BorderCard
 import io.github.rwpp.widget.ExitButton
 import io.github.rwpp.widget.LargeDividingLine
 import io.github.rwpp.widget.v2.ExpandedCard
-import org.koin.compose.koinInject
 
 /**
  * Simple contributor list,
@@ -46,38 +43,6 @@ fun ContributorList(
 
             BackHandler(true, onExit)
 
-            val net = koinInject<Net>()
-
-            val header1 = buildAnnotatedString {
-                append("赞助者列表")
-
-                withLink(
-                    link = LinkAnnotation
-                        .Clickable(
-                            tag = "contributor",
-                            linkInteractionListener = { net.openUriInBrowser("https://afdian.com/a/minxyzgo") },
-                            styles = TextLinkStyles(style = SpanStyle(color = Color.Red))
-                        )
-                ) {
-                    append(" (为RWRPP赞助一下？)")
-                }
-            }
-
-            Text(header1, style = MaterialTheme.typography.headlineLarge, modifier = Modifier.align(Alignment.CenterHorizontally).padding(10.dp))
-            LargeDividingLine { 5.dp }
-
-            val sponsors = "铁锈盒子 (ww.rtsbox.cn);亚托莉;AABBRST;Toledo;猫猫"
-            BorderCard(modifier = Modifier.fillMaxWidth().padding(5.dp)) {
-                sponsors.split(";").forEach {
-                    Text(
-                        it,
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.align(Alignment.CenterHorizontally),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-
             Text("贡献者列表", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.align(Alignment.CenterHorizontally).padding(10.dp))
 
             LargeDividingLine { 5.dp }
@@ -87,6 +52,7 @@ fun ContributorList(
                 contributors.split(";").forEach {
                     Text(it, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.align(Alignment.CenterHorizontally))
                 }
+                Text("(RWPP 上游项目贡献者)", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.align(Alignment.CenterHorizontally))
             }
 
             Text("特别鸣谢", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.align(Alignment.CenterHorizontally).padding(10.dp))

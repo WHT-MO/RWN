@@ -19,7 +19,7 @@ data class Settings(
     var isFullscreen: Boolean = true,
     var showWelcomeMessage: Boolean? = null,
     var ignoreVersion: String? = null,
-    var autoCheckUpdate: Boolean = true,
+    var autoCheckUpdate: Boolean = false,
     var enhancedReinforceTroops: Boolean = false,
     var backgroundImagePath: String? = null,
     var selectedTheme: String? = null,

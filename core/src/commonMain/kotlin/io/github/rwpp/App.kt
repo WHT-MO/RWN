@@ -85,7 +85,6 @@ var LocalWindowManager = staticCompositionLocalOf { WindowManager.Large }
 @Composable
 fun App(
     sizeModifier: Modifier = Modifier.fillMaxSize(),
-    isPremium: Boolean = false,
     onChangeBackgroundImage: (String) -> Unit,
 ) {
     val coreData = koinInject<CoreData>()

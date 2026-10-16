@@ -220,10 +220,9 @@ fun swingApplication() = SwingUtilities.invokeLater {
             }
         } else {
             val settings = koinInject<Settings>()
-            val isPremium = true
             var backgroundImagePath by remember { mutableStateOf(settings.backgroundImagePath ?: "") }
             val painter = remember(backgroundImagePath) {
-                if (backgroundImagePath.isNotBlank() && isPremium) {
+                if (backgroundImagePath.isNotBlank()) {
                     runCatching { ImageIO.read(File(backgroundImagePath)).toPainter() }.getOrNull()
                 } else {
                     null
@@ -232,7 +231,7 @@ fun swingApplication() = SwingUtilities.invokeLater {
 
             Box(
                 modifier = Modifier.fillMaxSize().composed {
-                    if (backgroundImagePath.isBlank() || !isPremium || painter == null) {
+                    if (backgroundImagePath.isBlank() || painter == null) {
                         background(
                             brush = Brush.verticalGradient(
                                 listOf(
@@ -251,7 +250,7 @@ fun swingApplication() = SwingUtilities.invokeLater {
                 contentAlignment = Alignment.Center
             ) {
 
-                if (backgroundImagePath.isNotBlank() && isPremium && painter != null) {
+                if (backgroundImagePath.isNotBlank() && painter != null) {
                     Image(
                         painter = painter,
                         null,
@@ -260,7 +259,7 @@ fun swingApplication() = SwingUtilities.invokeLater {
                     )
                 }
 
-                if (isLoading) MenuLoadingView(message) else App(isPremium = isPremium) { path ->
+                if (isLoading) MenuLoadingView(message) else App { path ->
                     backgroundImagePath = path
                 }
 
