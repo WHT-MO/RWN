@@ -40,10 +40,10 @@ import io.github.rwpp.net.Net
 import io.github.rwpp.net.NetResourceInfo
 import io.github.rwpp.net.ResourceType
 import io.github.rwpp.platform.BackHandler
-import io.github.rwpp.rwpp_core.generated.resources.Res
-import io.github.rwpp.rwpp_core.generated.resources.download
-import io.github.rwpp.rwpp_core.generated.resources.login
-import io.github.rwpp.rwpp_core.generated.resources.replay_30
+import io.github.rwpp.core.generated.resources.Res
+import io.github.rwpp.core.generated.resources.download
+import io.github.rwpp.core.generated.resources.login
+import io.github.rwpp.core.generated.resources.replay_30
 import io.github.rwpp.widget.*
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject

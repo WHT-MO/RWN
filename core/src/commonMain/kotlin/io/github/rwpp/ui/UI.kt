@@ -47,7 +47,7 @@ import io.github.rwpp.i18n.I18nType
 import io.github.rwpp.i18n.readI18n
 import io.github.rwpp.net.Net
 import io.github.rwpp.projectVersion
-import io.github.rwpp.rwpp_core.generated.resources.*
+import io.github.rwpp.core.generated.resources.*
 import io.github.rwpp.ui.UI.showQuestion
 import io.github.rwpp.ui.UI.showWarning
 import io.github.rwpp.ui.color.getTeamColor

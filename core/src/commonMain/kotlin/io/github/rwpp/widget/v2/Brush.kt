@@ -11,8 +11,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.ImageShader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.TileMode
-import io.github.rwpp.rwpp_core.generated.resources.Res
-import io.github.rwpp.rwpp_core.generated.resources.metal
+import io.github.rwpp.core.generated.resources.Res
+import io.github.rwpp.core.generated.resources.metal
 import org.jetbrains.compose.resources.imageResource
 
 @Composable

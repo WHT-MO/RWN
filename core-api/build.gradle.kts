@@ -15,6 +15,7 @@ plugins {
 }
 
 buildConfig {
+    packageName.set("io.github.rwpp.rwpp_core_api")
     buildConfigField("VERSION", rootProject.version.toString())
 }
 

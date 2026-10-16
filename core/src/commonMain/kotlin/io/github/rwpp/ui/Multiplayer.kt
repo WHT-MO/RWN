@@ -62,7 +62,7 @@ import io.github.rwpp.net.RoomDescription
 import io.github.rwpp.net.sorted
 import io.github.rwpp.platform.BackHandler
 import io.github.rwpp.platform.readPainterByBytes
-import io.github.rwpp.rwpp_core.generated.resources.*
+import io.github.rwpp.core.generated.resources.*
 import io.github.rwpp.widget.*
 import io.github.rwpp.widget.v2.*
 import kotlinx.coroutines.Dispatchers

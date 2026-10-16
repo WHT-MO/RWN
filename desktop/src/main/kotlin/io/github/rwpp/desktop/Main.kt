@@ -286,7 +286,7 @@ fun swingApplication() = SwingUtilities.invokeLater {
         window.isResizable = true
     }
     window.title = "Rusted Warfare Plus Plus"
-    window.iconImage = ImageIO.read(ClassLoader.getSystemResource("composeResources/io.github.rwpp.rwpp_core.generated.resources/drawable/logo.png"))
+    window.iconImage = ImageIO.read(ClassLoader.getSystemResource("composeResources/io.github.rwpp.core.generated.resources/drawable/logo.png"))
     if (!requireReloadingLib) {
         window.addWindowListener(object : WindowAdapter() {
             override fun windowClosing(e: WindowEvent?) {

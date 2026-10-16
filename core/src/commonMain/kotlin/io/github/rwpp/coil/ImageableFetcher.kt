@@ -12,7 +12,7 @@ import coil3.decode.ImageSource
 import coil3.fetch.FetchResult
 import coil3.fetch.Fetcher
 import coil3.fetch.SourceFetchResult
-import io.github.rwpp.rwpp_core.generated.resources.Res
+import io.github.rwpp.core.generated.resources.Res
 import io.github.rwpp.ui.Imageable
 import okio.FileSystem
 import okio.buffer

@@ -17,8 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import io.github.rwpp.rwpp_core.generated.resources.Res
-import io.github.rwpp.rwpp_core.generated.resources.title
+import io.github.rwpp.core.generated.resources.Res
+import io.github.rwpp.core.generated.resources.title
 import io.github.rwpp.widget.v2.LineSpinFadeLoaderIndicator
 import org.jetbrains.compose.resources.painterResource
 

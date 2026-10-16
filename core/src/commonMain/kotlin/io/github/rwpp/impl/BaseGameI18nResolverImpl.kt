@@ -10,7 +10,7 @@ package io.github.rwpp.impl
 import io.github.rwpp.config.Settings
 import io.github.rwpp.i18n.GameI18nResolver
 import io.github.rwpp.i18n.i18nTable
-import io.github.rwpp.rwpp_core.generated.resources.Res
+import io.github.rwpp.core.generated.resources.Res
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext

@@ -44,7 +44,7 @@ import io.github.rwpp.game.mod.ModManager
 import io.github.rwpp.i18n.readI18n
 import io.github.rwpp.modDir
 import io.github.rwpp.platform.BackHandler
-import io.github.rwpp.rwpp_core.generated.resources.*
+import io.github.rwpp.core.generated.resources.*
 import io.github.rwpp.widget.*
 import io.github.rwpp.widget.v2.ExpandedCard
 import io.github.rwpp.widget.v2.LazyColumnScrollbar
