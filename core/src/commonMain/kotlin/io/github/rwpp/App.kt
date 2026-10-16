@@ -28,7 +28,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
@@ -36,18 +35,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.*
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
 import coil3.request.crossfade
 import coil3.size.Precision
-import com.mikepenz.markdown.compose.Markdown
-import com.mikepenz.markdown.m3.markdownColor
-import com.mikepenz.markdown.m3.markdownTypography
 import io.github.rwpp.coil.ImageableFetcherFactory
 import io.github.rwpp.coil.ImageableKeyer
-import io.github.rwpp.config.CoreData
 import io.github.rwpp.config.Settings
 import io.github.rwpp.event.GlobalEventChannel
 import io.github.rwpp.event.broadcast
@@ -58,7 +52,6 @@ import io.github.rwpp.event.onDispose
 import io.github.rwpp.game.Game
 import io.github.rwpp.i18n.I18nType
 import io.github.rwpp.i18n.readI18n
-import io.github.rwpp.net.LatestVersionProfile
 import io.github.rwpp.net.Net
 import io.github.rwpp.scripts.Render
 import io.github.rwpp.ui.*
@@ -74,9 +67,7 @@ import io.github.rwpp.ui.UI.showRoomView
 import io.github.rwpp.ui.UI.showSettingsView
 import io.github.rwpp.widget.*
 import io.github.rwpp.widget.v2.LineSpinFadeLoaderIndicator
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 var LocalWindowManager = staticCompositionLocalOf { WindowManager.Large }
@@ -87,35 +78,9 @@ fun App(
     sizeModifier: Modifier = Modifier.fillMaxSize(),
     onChangeBackgroundImage: (String) -> Unit,
 ) {
-    val coreData = koinInject<CoreData>()
     val settings = koinInject<Settings>()
     val net = koinInject<Net>()
     var isSinglePlayerGame by remember { mutableStateOf(false) }
-
-    var checkUpdateDialogVisible by remember { mutableStateOf(false) }
-    var profile by remember { mutableStateOf<LatestVersionProfile?>(null) }
-
-    LaunchedEffect(Unit) {
-        val now = System.currentTimeMillis()
-        coreData.lastPlayTime = now
-        // per day
-        if ((now - (coreData.lastAutoCheckUpdateTime + 1000 * 60 * 60 * 24) > 0) || coreData.debug) {
-            withContext(Dispatchers.IO) {
-                if (settings.autoCheckUpdate) {
-                    val _profile = net.getLatestVersionProfile()
-
-                    if (_profile != null) {
-                        coreData.lastAutoCheckUpdateTime = now
-
-                        if (_profile.version != projectVersion && settings.ignoreVersion != _profile.version || coreData.debug) {
-                            profile = _profile
-                            checkUpdateDialogVisible = true
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     setSingletonImageLoaderFactory { context ->
         ImageLoader.Builder(context)
@@ -363,118 +328,6 @@ fun App(
                                 modifier = Modifier.padding(5.dp),
                                 color = MaterialTheme.colorScheme.onSurface,
                                 style = MaterialTheme.typography.bodyLarge
-                            )
-                        }
-                    }
-                }
-
-                AnimatedAlertDialog(
-                    checkUpdateDialogVisible,
-                    onDismissRequest = { checkUpdateDialogVisible = false }
-                ) { dismiss ->
-                    BorderCard(modifier = Modifier.fillMaxWidth(GeneralProportion()).verticalScroll(rememberScrollState())) {
-
-                        Row(modifier = Modifier.fillMaxWidth().padding(5.dp)) {
-                            HorizontalDivider(Modifier.weight(1f), thickness = 2.dp, color = Color.DarkGray)
-                            Box {
-                                Icon(
-                                    Icons.Default.Warning,
-                                    null,
-                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    modifier = Modifier.size(50.dp).offset(5.dp, 5.dp).blur(2.dp)
-                                )
-                                Icon(
-                                    Icons.Default.Warning,
-                                    null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(50.dp)
-                                )
-                            }
-                            HorizontalDivider(Modifier.weight(1f), thickness = 2.dp, color = Color.DarkGray)
-                        }
-
-                        Text(
-                            readI18n("settings.newVersion", I18nType.RWPP, (if (profile!!.prerelease) "Prerelease " else "") + profile!!.version),
-                            modifier = Modifier.align(Alignment.CenterHorizontally).padding(5.dp),
-                            style = MaterialTheme.typography.headlineMedium
-                        )
-
-                        val annotatedString = buildAnnotatedString {
-                            if (!profile!!.prerelease) {
-                                withLink(
-                                    link = LinkAnnotation
-                                        .Clickable(
-                                            tag = "github",
-                                            linkInteractionListener = { net.openUriInBrowser("https://github.com/Minxyzgo/RWPP/releases") },
-                                            styles = TextLinkStyles(
-                                                style = SpanStyle(
-                                                    color = Color(0, 0, 238),
-                                                    textDecoration = TextDecoration.Underline
-                                                )
-                                            )
-                                        )
-                                ) {
-                                    append(readI18n("settings.goToDownload", I18nType.RWPP, "github"))
-                                }
-
-                                append("\n")
-
-                                withLink(
-                                    link = LinkAnnotation
-                                        .Clickable(
-                                            tag = "123pan",
-                                            linkInteractionListener = { net.openUriInBrowser("https://www.123684.com/s/6Rijjv-79Fi?提取码:VtDG") },
-                                            styles = TextLinkStyles(
-                                                style = SpanStyle(
-                                                    color = Color(0, 0, 238),
-                                                    textDecoration = TextDecoration.Underline
-                                                )
-                                            )
-                                        )
-                                ) {
-                                    append(readI18n("settings.goToDownload", I18nType.RWPP, "123pan"))
-                                }
-                            } else {
-                                append(readI18n("settings.prereleaseNote\n"))
-
-                                withLink(
-                                    link = LinkAnnotation
-                                        .Clickable(
-                                            tag = "afdian",
-                                            linkInteractionListener = { net.openUriInBrowser("https://afdian.com/a/minxyzgo") },
-                                            styles = TextLinkStyles(
-                                                style = SpanStyle(
-                                                    color = Color(0, 0, 238),
-                                                    textDecoration = TextDecoration.Underline
-                                                )
-                                            )
-                                        )
-                                ) {
-                                    append(readI18n("settings.goToDownload", I18nType.RWPP, "爱发电"))
-                                }
-                            }
-                        }
-
-                        Text(
-                            annotatedString,
-                            modifier = Modifier.align(Alignment.CenterHorizontally).padding(2.dp),
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-
-                        RWTextButton(
-                            readI18n("settings.ignoreVersion"),
-                            modifier = Modifier.align(Alignment.CenterHorizontally).padding(5.dp)
-                        ) {
-                            settings.ignoreVersion = profile!!.version
-                            dismiss()
-                        }
-
-                        BorderCard(backgroundColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f)) {
-                            Markdown(
-                                profile!!.body,
-                                modifier = Modifier.padding(5.dp),
-                                colors = markdownColor(),
-                                typography = markdownTypography()
                             )
                         }
                     }
