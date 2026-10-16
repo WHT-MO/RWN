@@ -31,3 +31,4 @@ generated_lib/
 /mods/
 /*.log
 hs_err_pid*
+.kotlin/
