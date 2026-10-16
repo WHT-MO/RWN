@@ -27,13 +27,16 @@ open class UnitComp {
     /** 该单位的视野圈是否显示（游戏内额外按钮切换） */
     var showVisionRange: Boolean = false
 
+    /** 侦察视野开关作用的单位（ini name 字段）：侦查者 scout / 无人侦察机 spyDrone */
+    private val scoutUnitNames = listOf("scout", "spyDrone")
+
     // showUnitWayPoint
     open fun onDraw(unit: GameUnit, delta: Float) {
         // 视野圈：游戏内按钮切换单个单位，或设置开启时对己方侦察单位自动显示
         if (!unit.isDead && (showVisionRange
                 || (settings.showScoutVision
                     && unit.player.team == game.gameRoom.localPlayer.team
-                    && unit.type.name.contains("recon", ignoreCase = true)))
+                    && unit.type.name in scoutUnitNames))
         ) {
             drawRange(unit, unit.maxSight)
         }

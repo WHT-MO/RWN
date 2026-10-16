@@ -195,16 +195,6 @@ fun App(
                             state,
                             multiplayer = {
                                 isSinglePlayerGame = false
-                                // 首次进入多人：引导玩家选择是否开启建房欢迎语（一次性）
-                                if (settings.showWelcomeMessage == null) {
-                                    UI.question = UI.Question(
-                                        "建房欢迎语",
-                                        "是否在建房时向所有玩家广播 RWNoctiluna 欢迎语？\n（点取消=不广播；之后可在 设置-开发者 中更改）",
-                                    ) { value ->
-                                        // 确认按钮传输入文本(非null)，取消/点外部传 null
-                                        settings.showWelcomeMessage = value != null
-                                    }
-                                }
                                 showMultiplayerView = true
                             },
                             mission = {

@@ -55,7 +55,11 @@ interface GameUnitImpl : GameUnit {
         get() = (this as? com.corrodinggames.rts.game.units.y)?.m() ?: 0f
 
     override val maxSight: Float
-        get() = self.V().toFloat()
+        get() = runCatching {
+            // custom.l = 单位类型实现(class_591)，cL: custom.as = 单位数据(class_398)，
+            // 其 n 字段 = ini 的 fogOfWarSightRange（javap 已验证全 public）
+            (self.dz as? com.corrodinggames.rts.game.units.custom.l)?.cL?.n?.toFloat() ?: 0f
+        }.getOrDefault(0f)
 
     override val maxHealth: Float
         get() = self.cv
