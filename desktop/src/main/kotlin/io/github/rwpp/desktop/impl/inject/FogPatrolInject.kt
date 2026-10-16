@@ -53,12 +53,13 @@ object FogPatrolInject {
 
     @Inject("f", injectMode = InjectMode.InsertBefore)
     fun b.onFogPatrol(delta: Float): Any {
-        if (delta <= 0f) return Unit
         val level = settings.fogPatrolLevel
         val multiplayer = runCatching { !game.gameRoom.isSinglePlayerGame }.getOrDefault(false)
         if (!multiplayer && level == "关闭") return Unit
 
-        // 1. 基线巡逻：E/F/G 翻转立即写回
+        // 1. 基线巡逻：E/F/G 翻转立即写回。
+        //    位于 delta 检查之前——暂停(delta=0)时计时器不走，
+        //    但开关翻转型必须立即防御。
         val base = baseline.getOrPut(this) { Baseline(E, F, G) }
         if (E != base.e) E = base.e
         if (F != base.f) F = base.f
@@ -66,6 +67,8 @@ object FogPatrolInject {
 
         // 无雾基线（E=false）下引擎不维护 N 数组，无物可防
         if (!E) return Unit
+        // 暂停/零步长：跳过计时器累加
+        if (delta <= 0f) return Unit
 
         val age = (mapAge[this] ?: 0f) + delta
         mapAge[this] = age
