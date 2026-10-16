@@ -32,3 +32,4 @@ generated_lib/
 /*.log
 hs_err_pid*
 .kotlin/
+/dist/
