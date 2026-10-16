@@ -10,6 +10,7 @@ package io.github.rwpp.desktop.impl.inject
 import com.corrodinggames.rts.game.b.b
 import io.github.rwpp.appKoin
 import io.github.rwpp.config.Settings
+import io.github.rwpp.desktop.GameEngine
 import io.github.rwpp.game.Game
 import io.github.rwpp.inject.Inject
 import io.github.rwpp.inject.InjectClass
@@ -17,86 +18,108 @@ import io.github.rwpp.inject.InjectMode
 import java.util.WeakHashMap
 
 /**
- * 迷雾巡逻反作弊 v2：爆发窗口 + 稳态档位 + 采样检测 + 多人对局强制。
+ * 迷雾巡逻反作弊 v3：基线完整性巡逻 + 自研独立重扫。
  *
- * 1. 爆发窗口：地图实例刚创建时（进服/重进对局）重扫间隔压到 BURST_INTERVAL，
- *    因为 CE 改视野仅在开局同步时生效、中局修改须重进对局才可见——开局是
- *    唯一作弊窗口，而开局单位少、重扫成本几乎为零。
- * 2. 稳态档位：30 秒后回落到设置档位（标准65s/严格20s），作为情报有误时的保险丝。
- * 3. 采样检测：稳态期间每秒随机抽 SAMPLE_COUNT 个"可见"格子，用引擎原生
- *    a(int,int,PlayerData) 可见性判定比对当前迷雾值——单位移动/新单位揭示
- *    走引擎同步路径不会产生分歧；发现不一致（CE 特征）立即触发原生重扫。
- *    采样异常只触发重扫不产生任何处罚，最坏结果是多扫一次，零误报代价。
- * 4. 多人对局强制：多人中无论设置为何（含"关闭"/被篡改）一律执行严格档+采样，
- *    单机尊重玩家选择——UI 锁挡不住改配置文件，逻辑层强制才有效。
+ * 全链排查结论（源码+运行时双重验证）：
+ * - 房间 fog 设置经网络包(GameMapData.fog 0/1/2)在加载时译码为地图实例的
+ *   E(迷雾总开关)/F(原生重扫允许)；G 为 revealedMap(开局全图揭示)。
+ *   浓雾=1→E,F=true,false：原生 260s 重扫被 E&&F 门控**从不运行**，
+ *   CE 改 N 数组（透视）或翻 E/G（判定短路）均可一整局有效。
+ * - 每次对局/回放加载创建新地图实例(EngineLoad: bL = new class_484())，
+ *   合法的 E/F/G 变更只发生在加载译码，无对局中途合法翻转。
+ *
+ * 三层防御（全部本机玩家本地数据，零联机同步风险）：
+ * 1. 基线巡逻：实例首个 tick 记录 E/F/G 基线（含无雾房/沙盒/revealedMap
+ *    的合法 false/true 值），此后每 tick 校验，翻转立即写回——封死翻开关型。
+ * 2. 自研独立重扫：本机玩家 N 数组中 <5(可见) 的格子全部压回 5，标记重绘；
+ *    合法视野由引擎逐 tick 揭示在下一 tick 自动重建。复刻原生重扫的核心
+ *    动作但不经过 E&&F 门控——浓雾下也运行。开局 30s 突发间隔 1.5s
+ *    （CE 改视野仅开局同步生效，重进=新实例=自动再突发），随后按档位。
+ * 3. 采样检测：每秒统计可见格数，突变(>3倍且>30%全图，或单秒增量>10%)
+ *    立即触发独立重扫。
+ *
+ * 淡雾(F=true)模式不在防护范围（用户确认无人游玩），原生重扫自会运行。
  */
 @InjectClass(b::class)
 object FogPatrolInject {
     private val settings by lazy { appKoin.get<Settings>() }
     private val game by lazy { appKoin.get<Game>() }
 
-    private val arField by lazy {
-        runCatching { b::class.java.getDeclaredField("ar").apply { isAccessible = true } }.getOrNull()
-    }
+    private class Baseline(val e: Boolean, val f: Boolean, val g: Boolean)
 
-    /** 每个地图实例的存活计时（游戏线程内访问，无需锁） */
+    /** 每个地图实例的巡逻状态（游戏线程内访问，无需锁） */
+    private val baseline = WeakHashMap<b, Baseline>()
     private val mapAge = WeakHashMap<b, Float>()
-
-    /** 采样累计计时 */
+    private val rescanTimer = WeakHashMap<b, Float>()
     private val sampleTimer = WeakHashMap<b, Float>()
+    private val lastVisible = WeakHashMap<b, Int>()
 
     @Inject("f", injectMode = InjectMode.InsertBefore)
     fun b.onFogPatrol(delta: Float): Any {
-        val field = arField
-        if (field == null || delta <= 0f) return Unit
+        if (delta <= 0f) return Unit
+        val level = settings.fogPatrolLevel
+        val multiplayer = runCatching { !game.gameRoom.isSinglePlayerGame }.getOrDefault(false)
+        if (!multiplayer && level == "关闭") return Unit
+
+        // 1. 基线巡逻：E/F/G 翻转立即写回
+        val base = baseline.getOrPut(this) { Baseline(E, F, G) }
+        if (E != base.e) E = base.e
+        if (F != base.f) F = base.f
+        if (G != base.g) G = base.g
+
+        // 无雾基线（E=false）下引擎不维护 N 数组，无物可防
+        if (!E) return Unit
 
         val age = (mapAge[this] ?: 0f) + delta
         mapAge[this] = age
+        val steady = if (multiplayer || level == "严格") STEADY_STRICT else STEADY_STANDARD
+        val interval = if (age < BURST_DURATION) BURST_INTERVAL else steady
 
-        val multiplayer = runCatching { !game.gameRoom.isSinglePlayerGame }.getOrDefault(false)
-        val userLevel = settings.fogPatrolLevel
-        // 多人对局强制严格；单机且用户关闭则完全退出
-        if (!multiplayer && userLevel == "关闭") return Unit
-
-        val steadyThreshold = if (multiplayer || userLevel == "严格") 20.0f else 65.0f
-        val threshold = if (age < BURST_DURATION) BURST_INTERVAL else steadyThreshold
-
-        runCatching {
-            if (field.getFloat(this) > threshold) {
-                field.setFloat(this, NATIVE_RESCAN_TRIGGER)
-            }
+        // 2. 周期独立重扫
+        val t = (rescanTimer[this] ?: 0f) + delta
+        if (t >= interval) {
+            rescanTimer[this] = 0f
+            resetLocalFog()
+        } else {
+            rescanTimer[this] = t
         }
 
-        // 稳态采样检测（爆发窗口本身已是高频重扫，无需采样）
+        // 3. 采样检测（突发期本身高频重扫，无需采样）
         if (age >= BURST_DURATION) {
-            val t = (sampleTimer[this] ?: 0f) + delta
-            if (t >= SAMPLE_PERIOD) {
+            val s = (sampleTimer[this] ?: 0f) + delta
+            if (s >= SAMPLE_PERIOD) {
                 sampleTimer[this] = 0f
-                if (sampleFogMismatch(this)) {
-                    runCatching { field.setFloat(this, NATIVE_RESCAN_TRIGGER) }
-                }
+                if (visibleCountSpike()) resetLocalFog()
             } else {
-                sampleTimer[this] = t
+                sampleTimer[this] = s
             }
         }
         return Unit
     }
 
     /**
-     * 可见格计数突变检测：每秒统计本机玩家迷雾中"可见"格子总数。
-     * CE 透视的本质是把敌方区域大面积改可见，可见格数会瞬间暴涨
-     * （突变 >3 倍且超过全图 30%）；合法的视野变化（单位移动/交战）
-     * 每秒只有小幅渐进变化。只读 N 数组自身维度，零字段映射风险。
-     * 注意：地图 reveal 触发器也会造成突变——误触发一次原生重扫，
-     * 与原生 260s 重扫对 reveal 的撤销行为一致，无新增伤害。
+     * 独立重扫：把本机玩家 N 数组的可见格(<5)全部压回 5。
+     * 与原生重扫同款动作；随后引擎逐 tick 揭示会在下一 tick 重建合法视野。
      */
-    private fun sampleFogMismatch(map: b): Boolean {
+    private fun resetLocalFog() {
+        runCatching {
+            val local = game.gameRoom.localPlayer as? com.corrodinggames.rts.game.n ?: return
+            val fog = local.N ?: return
+            for (column in fog) {
+                val col = column ?: continue
+                for (i in col.indices) {
+                    if (col[i] < VISIBLE_LIMIT) col[i] = VISIBLE_LIMIT
+                }
+            }
+            GameEngine.B().bW.O = true
+        }
+    }
+
+    /** 可见格计数突变检测（CE 全图透视的典型特征） */
+    private fun b.visibleCountSpike(): Boolean {
         return runCatching {
-            val localPlayer = game.gameRoom.localPlayer ?: return false
-            // localPlayer 本身就是被接口化的原生 n 实例（javassist @SetInterfaceOn）
-            @Suppress("UNCHECKED_CAST")
-            val player = localPlayer as? com.corrodinggames.rts.game.n ?: return false
-            val fog = player.N ?: return false
+            val local = game.gameRoom.localPlayer as? com.corrodinggames.rts.game.n ?: return false
+            val fog = local.N ?: return false
 
             var visible = 0
             var total = 0
@@ -107,21 +130,18 @@ object FogPatrolInject {
             }
             if (total <= 0) return false
 
-            val last = lastVisibleCount[map]
-            lastVisibleCount[map] = visible
+            val last = lastVisible[this]
+            lastVisible[this] = visible
             if (last == null || last == 0) return false
 
-            val ratio = visible.toFloat() / total
-            (visible > last * 3 && ratio > 0.3f) || (visible - last) > total / 10
+            (visible > last * 3 && visible > total * 3 / 10) || (visible - last) > total / 10
         }.getOrDefault(false)
     }
 
-    /** 每个地图实例上次采样的可见格数 */
-    private val lastVisibleCount = WeakHashMap<b, Int>()
-
     private const val BURST_DURATION = 30.0f
     private const val BURST_INTERVAL = 1.5f
-    private const val NATIVE_RESCAN_TRIGGER = 261.0f
-    private const val VISIBLE_LIMIT = 5.toByte()
+    private const val STEADY_STRICT = 20.0f
+    private const val STEADY_STANDARD = 65.0f
     private const val SAMPLE_PERIOD = 1.0f
+    private const val VISIBLE_LIMIT = 5.toByte()
 }
