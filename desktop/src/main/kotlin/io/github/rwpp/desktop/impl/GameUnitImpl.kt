@@ -8,6 +8,7 @@
 package io.github.rwpp.desktop.impl
 
 import com.corrodinggames.rts.game.units.am
+import io.github.rwpp.desktop.GameEngine
 import io.github.rwpp.appKoin
 import io.github.rwpp.game.Player
 import io.github.rwpp.game.comp.UnitComp
@@ -56,9 +57,12 @@ interface GameUnitImpl : GameUnit {
 
     override val maxSight: Float
         get() = runCatching {
-            // custom.l = 单位类型实现(class_591)，cL: custom.as = 单位数据(class_398)，
-            // 其 n 字段 = ini 的 fogOfWarSightRange（javap 已验证全 public）
-            (self.dz as? com.corrodinggames.rts.game.units.custom.l)?.cL?.n?.toFloat() ?: 0f
+            // custom.l = 单位类型实现，cL: custom.as = 单位数据，
+            // cL.n = ini 的 fogOfWarSightRange，刻度是"格"；
+            // drawCircle 半径刻度是"像素"（同攻击范围 m()），故 × 地图每格像素(b.r)
+            val data = (self.dz as? com.corrodinggames.rts.game.units.custom.l)?.cL
+                ?: return 0f
+            data.n * GameEngine.B().bL.r
         }.getOrDefault(0f)
 
     override val maxHealth: Float
