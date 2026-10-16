@@ -57,12 +57,11 @@ interface GameUnitImpl : GameUnit {
 
     override val maxSight: Float
         get() = runCatching {
-            // custom.l = 单位类型实现，cL: custom.as = 单位数据，
-            // cL.n = ini 的 fogOfWarSightRange，刻度是"格"；
-            // drawCircle 半径刻度是"像素"（同攻击范围 m()），故 × 地图每格像素(b.r)
-            val data = (self.dz as? com.corrodinggames.rts.game.units.custom.l)?.cL
-                ?: return 0f
-            data.n * GameEngine.B().bL.r
+            // y.s() = 视野半径（格），引擎迷雾揭示用同一值（custom 覆写返回 fogOfWarSightRange，
+            // 基类默认15）；drawCircle 半径刻度是像素，换算：格 × 每格像素(bL.n)。
+            // 注意 bL.r = 1/n 是倒数，别乘错。
+            val sightTiles = (self as? com.corrodinggames.rts.game.units.y)?.s() ?: return 0f
+            sightTiles * GameEngine.B().bL.n.toFloat()
         }.getOrDefault(0f)
 
     override val maxHealth: Float
