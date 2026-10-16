@@ -172,7 +172,6 @@ open class UIProvider {
         sandbox: () -> Unit,
         extension: () -> Unit,
         replay: () -> Unit,
-        contributor: () -> Unit,
         resourceBrowser: () -> Unit
     ) {
         Column(
@@ -181,7 +180,8 @@ open class UIProvider {
             verticalArrangement = Arrangement.Center
         ) {
 
-            Spacer(modifier = Modifier.weight(1f))
+            // 顶部空隙权重放大：内容整体沉向窗口下方，露出背景人物
+            Spacer(modifier = Modifier.weight(1.6f))
 
             Text(
                 "RWNoctiluna",
@@ -294,35 +294,42 @@ open class UIProvider {
                 }
             }
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                RWIconButton(Icons.Filled.Favorite, modifier = Modifier.padding(10.dp), tint = Color.Red, onClick = contributor)
+            Spacer(modifier = Modifier.weight(1f))
+        }
 
+        // 右上角覆盖层：公告 / GitHub / 关于 / 退出（本土化：删赞助与QQ群入口）
+        Box(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier.align(Alignment.TopEnd).padding(12.dp)
+            ) {
                 val net = koinInject<Net>()
 
-                RWIconButton(painterResource(Res.drawable.qq), modifier = Modifier.padding(10.dp)) {
-                    net.openUriInBrowser("https://qun.qq.com/universal-share/share?ac=1&authKey=QmG6huGEuUos23WJ0WBwh2sUXiP8%2FsLbsX375KEw9HQzdqT2HK2yEY1WS1Me87%2Bw&busi_data=eyJncm91cENvZGUiOiI5Mjc1OTc0OTUiLCJ0b2tlbiI6ImNaZ2dRYXNLd1d3Q0dhS1p0aG9pcVBsOTYxTEJNb0Z4ZDdXT3lmdTljazB2ZEhVQXd5S1dNa0lYVCtwdDZGYXoiLCJ1aW4iOiIxMjI1MzI3ODY2In0%3D&data=ys1-t0OmBONJktYt21HLtehR3nE23CFtG-YUNRRq7Q7aAMmkd-K_EupcjeKeapL9Aob7bXEpuXIp74FsCcUStg&svctype=4&tempid=h5_group_info")
-                }
-
                 var showAnnouncement by remember { mutableStateOf(false) }
-                RWIconButton(Icons.Filled.Info, modifier = Modifier.padding(10.dp)) {
+                RWIconButton(Icons.Filled.Info, modifier = Modifier.padding(4.dp)) {
                     showAnnouncement = true
                 }
                 if (showAnnouncement) {
                     AnnouncementDialog { showAnnouncement = false }
                 }
 
-                RWIconButton(painterResource(Res.drawable.octocat_30), modifier = Modifier.padding(10.dp)) {
+                RWIconButton(painterResource(Res.drawable.octocat_30), modifier = Modifier.padding(4.dp)) {
                     net.openUriInBrowser("https://github.com/Minxyzgo/RWPP")
                 }
 
+                var showAbout by remember { mutableStateOf(false) }
+                RWIconButton(Icons.Filled.Favorite, modifier = Modifier.padding(4.dp), tint = Color.Red) {
+                    showAbout = true
+                }
+                if (showAbout) {
+                    AboutDialog { showAbout = false }
+                }
+
                 with(koinInject<AppContext>()) {
-                    RWIconButton(painterResource(Res.drawable.exit_30), modifier = Modifier.padding(10.dp)) {
+                    RWIconButton(painterResource(Res.drawable.exit_30), modifier = Modifier.padding(4.dp)) {
                         exit()
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.weight(1f))
         }
     }
 

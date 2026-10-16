@@ -151,7 +151,7 @@ object NetworkInject {
             && player != room.localPlayer
             && room.isHost
         ) {
-            commands.handleCommandMessage(str2 ?: "", player) { room.sendMessageToPlayer(player, "RWPP", it) }
+            commands.handleCommandMessage(str2 ?: "", player) { room.sendMessageToPlayer(player, "RWNoctiluna", it) }
             return InterruptResult.Unit
         } else {
             return Unit

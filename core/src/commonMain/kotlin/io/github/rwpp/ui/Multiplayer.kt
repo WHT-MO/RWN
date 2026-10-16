@@ -117,7 +117,7 @@ fun MultiplayerView(
 
     var userName by remember {
         val lastName = configIO.getGameConfig<String?>("lastNetworkPlayerName")
-        mutableStateOf((lastName ?: "RWPP${(0..999).random()}").also { game.setUserName(it) })
+        mutableStateOf((lastName ?: "RWNoctiluna${(0..999).random()}").also { game.setUserName(it) })
     }
 
     val blacklists = remember { mutableStateListOf<Blacklist>().apply { addAll(blacklistsInstance.blacklists) } }

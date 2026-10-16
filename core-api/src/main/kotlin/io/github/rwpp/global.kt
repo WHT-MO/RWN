@@ -76,7 +76,7 @@ val commands = CommandHandler("/").apply {
     register<Player>("help", "[page]", "Lists all commands.") { args, player ->
         val room = appKoin.get<Game>().gameRoom
         if (args.isNotEmpty() && args[0].toIntOrNull() == null) {
-            room.sendMessageToPlayer(player, "RWPP", "'page' must be a number.")
+            room.sendMessageToPlayer(player, "RWNoctiluna", "'page' must be a number.")
             return@register
         }
         val commandsPerPage = 6
@@ -86,7 +86,7 @@ val commands = CommandHandler("/").apply {
         page--
 
         if (page >= pages || page < 0) {
-            room.sendMessageToPlayer(player, "RWPP", "'page' must be a number between 1 and $pages.")
+            room.sendMessageToPlayer(player, "RWNoctiluna", "'page' must be a number between 1 and $pages.")
             return@register
         }
 
@@ -99,7 +99,7 @@ val commands = CommandHandler("/").apply {
                 .append(" - ").append(command.description).append("\n")
 
         }
-        room.sendMessageToPlayer(player, "RWPP", result.toString())
+        room.sendMessageToPlayer(player, "RWNoctiluna", result.toString())
     }
 }
 

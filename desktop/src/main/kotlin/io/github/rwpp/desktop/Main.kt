@@ -276,7 +276,7 @@ fun swingApplication() = SwingUtilities.invokeLater {
     }
 
     val window = JFrame()
-    val frame = JFrame("退出RWPP")
+    val frame = JFrame("退出RWNoctiluna")
     frame.setSize(300, 200)
     if (requireReloadingLib) {
         window.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
@@ -299,7 +299,7 @@ fun swingApplication() = SwingUtilities.invokeLater {
             override fun windowClosing(e: WindowEvent?) {
                 val result = JOptionPane.showConfirmDialog(
                     frame,
-                    "Are you sure to exit RWPP? (确定要退出RWPP吗？)",
+                    "Are you sure to exit RWNoctiluna? (确定要退出RWNoctiluna吗？)",
                     "提示",
                     JOptionPane.YES_NO_OPTION
                 )

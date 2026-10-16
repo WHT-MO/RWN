@@ -206,6 +206,6 @@ interface GameRoom {
 
 fun GameRoom.sendChatMessageOrCommand(message: String) {
     if (isHost && message.startsWith(commands.prefix)) {
-        commands.handleCommandMessage(message, localPlayer) { sendMessageToPlayer(localPlayer, "RWPP", it) }
+        commands.handleCommandMessage(message, localPlayer) { sendMessageToPlayer(localPlayer, "RWNoctiluna", it) }
     } else sendChatMessage(message)
 }

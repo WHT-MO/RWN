@@ -222,9 +222,6 @@ fun App(
                             replay = {
                                 showReplayView = true
                             },
-                            contributor = {
-                                showContributorList = true
-                            },
                             resourceBrowser = {
                                 showResourceBrowser = true
                             }
