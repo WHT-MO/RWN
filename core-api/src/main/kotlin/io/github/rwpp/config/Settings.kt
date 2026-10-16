@@ -45,6 +45,6 @@ data class Settings(
 ) : Config {
     companion object {
         val unitAttackRangeTypes = listOf("Never", "Land", "Air", "All")
-        val fogPatrolLevels = listOf("关闭", "标准", "严格")
+        val fogPatrolLevels = listOf("标准", "严格")
     }
 }
