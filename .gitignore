@@ -1,0 +1,33 @@
+*.iml
+.gradle
+/.idea
+build/
+/captures
+/local.properties
+**/bin/
+/.learnbuddy/
+
+# 游戏本体 jar（版权物，不入库；用 scripts/setup-lib.bat 从本地游戏安装目录复制）
+/lib/
+
+# 参考仓库与临时产物（仅本机预研用）
+/research/
+/tools/
+_test_dir*
+generated_lib/
+
+# 已弃用的 RWPP 模块残留（本机文件系统锁，等重启后手动删除）
+/rwpp-android/
+/rwpp-core/
+/rwpp-core-api/
+/rwpp-desktop/
+/rwpp-ksp/
+/wix/
+
+# 运行时产物
+/crashes/
+/replays/
+/saves/
+/mods/
+/*.log
+hs_err_pid*

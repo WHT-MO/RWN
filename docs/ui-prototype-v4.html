@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RW Noctiluna · v4 月轨 Lunar Orbital</title>
+<style>
+/* ============================================================
+   v4 概念：月轨 LUNAR ORBITAL —— 为 RWNoctiluna 定制的专属语言：
+   · 月相图标——悬停时新月渐盈为满月
+   · 轨道环——品牌区缓慢旋转的天体轨道
+   · 夜色胶囊——深空靛蓝主按钮，银色文字，月环装饰
+   · HUD 角标——面板不封边，只留四角括线（科幻仪表感）
+   · 数据流——虚线瀑布、等宽数值、扫描线
+   · 拉丁衬线——Georgia 斜体标题，西方编辑美学
+   ============================================================ */
+:root{
+  --ink:#1b2240;            /* 深空靛 */
+  --sub:#4a5478;
+  --mute:#8b93b3;
+  --violet:#6a5fd0;         /* 月紫 */
+  --violet-soft:rgba(106,95,208,.14);
+  --gold:#b98f3e;           /* 月金（极少量点缀） */
+  --night:linear-gradient(150deg,#252c55,#38317e 55%,#4b3f9e);
+  --silver:#e9eafc;
+  --hair:rgba(106,95,208,.28);
+  --ease:cubic-bezier(.22,.9,.28,1);
+  --spring:cubic-bezier(.34,1.4,.44,1);
+  --serif:Georgia,"Times New Roman",serif;
+  --mono:Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none}
+html,body{height:100%}
+body{font-family:"Microsoft YaHei UI","微软雅黑",system-ui,sans-serif;
+  background:#0d1117;color:var(--ink);overflow:hidden}
+
+/* ============ 原型控制条 ============ */
+.proto-bar{position:fixed;top:0;left:0;right:0;height:46px;z-index:99;display:flex;align-items:center;
+  gap:10px;padding:0 18px;background:rgba(13,17,23,.88);backdrop-filter:blur(10px);
+  color:#9aa5bd;font-size:13px}
+.proto-bar b{color:#e8edf5;font-weight:600}
+.v4tag{font-size:10.5px;padding:2px 10px;border-radius:999px;font-weight:700;letter-spacing:1px;
+  background:linear-gradient(135deg,#38317e,#6a5fd0);color:#e9eafc;border:1px solid rgba(233,234,252,.3)}
+.proto-switch{margin-left:auto;display:flex;gap:6px}
+.proto-switch button{padding:6px 16px;border-radius:999px;border:1px solid rgba(255,255,255,.16);
+  cursor:pointer;background:transparent;color:#9aa5bd;font-size:12.5px;font-family:inherit;transition:all .25s}
+.proto-switch button:hover{color:#fff;border-color:rgba(255,255,255,.4)}
+.proto-switch button.on{background:var(--night);color:var(--silver);border-color:rgba(233,234,252,.35);font-weight:700}
+.proto-hint{color:#5c6a82;font-size:12px}
+
+/* ============ 舞台 / 背景 ============ */
+.stage{position:fixed;inset:46px 0 0 0;display:none}
+.stage.on{display:block}
+.screen-base{position:absolute;inset:0;overflow:hidden}
+.bgimg{position:absolute;inset:-3%;background:url("assets/default-background.png") center/cover no-repeat;
+  transition:transform .8s var(--ease), filter .9s var(--ease);will-change:transform}
+.veil{position:absolute;inset:0;transition:opacity .3s;
+  background:linear-gradient(120deg,rgba(244,246,253,.62),rgba(244,246,253,.15) 45%,rgba(244,246,253,.34))}
+/* 夜色层：昼夜切换时淡入 */
+.veil-dark{position:absolute;inset:0;opacity:0;transition:opacity .9s var(--ease);pointer-events:none;
+  background:linear-gradient(120deg,rgba(13,16,38,.78),rgba(13,16,38,.42) 45%,rgba(13,16,38,.62))}
+body.dark .veil-dark{opacity:1}
+body.dark .bgimg{filter:brightness(.36) saturate(1.3) contrast(1.03)}
+
+/* ============ 昼夜切换键：月相按钮（新月=昼 → 满月=夜） ============ */
+.theme-toggle{
+  width:42px;height:42px;border-radius:50%;cursor:pointer;flex:none;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.5);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  transition:all .3s var(--spring);z-index:20;
+}
+.theme-toggle .phase{width:18px;height:18px;transition:all .6s var(--spring)}
+.theme-toggle:hover{transform:scale(1.1);background:rgba(255,255,255,.4);
+  box-shadow:0 6px 18px rgba(27,34,64,.16)}
+.theme-toggle:active{transform:scale(.92)}
+body.dark .theme-toggle{background:rgba(24,28,58,.45);border-color:rgba(238,240,255,.3);
+  box-shadow:0 0 18px rgba(146,132,232,.35)}
+body.dark .theme-toggle .phase{background:#e8ebfa;box-shadow:0 0 10px rgba(232,235,250,.8);
+  transform:rotate(180deg)}
+/* 数据流虚线列 */
+.stream{position:absolute;top:0;bottom:0;width:1px;opacity:.55;
+  background:repeating-linear-gradient(180deg,var(--hair) 0 2px,transparent 2px 10px)}
+.stream-label{position:absolute;top:110px;font-family:var(--mono);font-size:9.5px;letter-spacing:2px;
+  color:var(--mute);writing-mode:vertical-rl;opacity:.8}
+/* 扫描线 */
+.scan{position:absolute;left:0;right:0;height:1px;opacity:.5;pointer-events:none;
+  background:linear-gradient(90deg,transparent 5%,rgba(106,95,208,.4) 50%,transparent 95%);
+  animation:scan 10s linear infinite}
+@keyframes scan{0%{top:6%}100%{top:94%}}
+/* 大月牙水印 */
+.crescent-mark{position:absolute;border-radius:50%;pointer-events:none;
+  box-shadow:inset 30px -12px 0 0 rgba(106,95,208,.09)}
+/* 轨道环 */
+.orbit{position:absolute;border:1px solid rgba(106,95,208,.22);border-radius:50%;pointer-events:none;
+  animation:spin 46s linear infinite}
+.orbit::before{content:"";position:absolute;top:-3.5px;left:50%;width:7px;height:7px;border-radius:50%;
+  background:var(--violet);box-shadow:0 0 10px rgba(106,95,208,.7)}
+.orbit.o2{animation-duration:70s;animation-direction:reverse;border-style:dashed;border-color:rgba(106,95,208,.16)}
+.orbit.o2::before{background:var(--gold);box-shadow:0 0 8px rgba(185,143,62,.6);width:5px;height:5px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ============ 月相图标：新月 → 满月 ============ */
+.phase{width:15px;height:15px;border-radius:50%;flex:none;position:relative;
+  box-shadow:inset 5px -2px 0 0 var(--violet);
+  transition:box-shadow .5s var(--ease), background .5s var(--ease), transform .5s var(--spring)}
+.phase.full{background:var(--violet);box-shadow:inset 0 0 0 0 var(--violet)}
+
+/* ============ HUD 面板：不封边，只留对角括线 ============ */
+.hud{position:relative;border-radius:18px;
+  background:linear-gradient(170deg,rgba(255,255,255,.12),rgba(255,255,255,.02));
+  backdrop-filter:blur(12px) saturate(1.25);-webkit-backdrop-filter:blur(12px) saturate(1.25);
+  border:1px solid rgba(255,255,255,.35);
+  box-shadow:0 10px 28px rgba(27,34,64,.05), inset 0 1px 0 rgba(255,255,255,.4)}
+.hud-cap{font-size:10px;letter-spacing:3px;color:var(--sub);font-weight:700;display:flex;align-items:center;gap:10px}
+.hud-cap::after{content:"";flex:1;height:1px;
+  background:repeating-linear-gradient(90deg,var(--hair) 0 3px,transparent 3px 8px)}
+.mono{font-family:var(--mono)}
+
+/* ============ 按钮 ============ */
+/* 月紫玻璃胶囊（主按钮）——和背景同层级的透，深靛文字保证可读 */
+.btn-moon{
+  position:relative;display:inline-flex;align-items:center;justify-content:center;gap:12px;
+  padding:13px 30px;border-radius:999px;font-size:15px;font-weight:700;letter-spacing:2.5px;
+  font-family:inherit;color:#2b2560;cursor:pointer;border:1px solid transparent;
+  backdrop-filter:blur(18px) saturate(1.45);-webkit-backdrop-filter:blur(18px) saturate(1.45);
+  background:
+    radial-gradient(circle at 18% 28%, rgba(255,255,255,.5) 0 1px, transparent 1.8px) padding-box,
+    radial-gradient(circle at 76% 64%, rgba(255,255,255,.35) 0 1px, transparent 1.8px) padding-box,
+    linear-gradient(180deg, rgba(255,255,255,.42), rgba(255,255,255,0) 60%) padding-box,
+    linear-gradient(150deg, rgba(146,132,232,.42), rgba(106,95,208,.30) 55%, rgba(96,126,208,.36)) padding-box,
+    linear-gradient(150deg, rgba(255,255,255,.9), rgba(255,255,255,.15) 45%, rgba(255,255,255,.6)) border-box;
+  box-shadow:0 6px 20px rgba(86,72,168,.22),
+    inset 0 1px 0 rgba(255,255,255,.6), inset 0 -1.5px 0 rgba(70,60,160,.12);
+  transition:transform .22s var(--spring), box-shadow .35s var(--ease), filter .3s;
+}
+.btn-moon .orbit-dot{width:17px;height:17px;border:1.5px solid rgba(60,53,144,.55);border-radius:50%;
+  position:relative;flex:none}
+.btn-moon .orbit-dot::after{content:"";position:absolute;top:-3px;left:50%;width:4.5px;height:4.5px;
+  margin-left:-2px;border-radius:50%;background:#4a3f9e;box-shadow:0 0 6px rgba(106,95,208,.8)}
+.btn-moon:hover{transform:translateY(-2px);filter:saturate(1.35) brightness(1.04);
+  box-shadow:0 10px 28px rgba(86,72,168,.32), 0 0 26px rgba(146,132,232,.3),
+    inset 0 1px 0 rgba(255,255,255,.75)}
+.btn-moon:hover .orbit-dot{animation:spin 1.5s linear infinite}
+.btn-moon:active{transform:scale(.955);filter:saturate(1.2) brightness(.96);
+  box-shadow:0 2px 8px rgba(86,72,168,.2), inset 0 3px 10px rgba(70,60,160,.18)}
+.btn-moon:focus-visible{outline:none;box-shadow:0 0 0 2px #fff,0 0 0 5px var(--violet)}
+/* 月环呼吸 */
+.btn-moon::before{content:"";position:absolute;inset:-4px;border-radius:999px;z-index:-1;
+  background:radial-gradient(ellipse at center,rgba(106,95,208,.45),transparent 70%);
+  animation:breathe 3.6s ease-in-out infinite;pointer-events:none}
+@keyframes breathe{0%,100%{opacity:.25;transform:scale(.97)}50%{opacity:.6;transform:scale(1.05)}}
+
+/* 线框按钮（次级）——薄冰玻璃，几乎融进背景 */
+.btn-line{
+  position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:10px 20px;font-size:13px;font-weight:600;letter-spacing:1.5px;font-family:inherit;
+  color:var(--ink);cursor:pointer;background:rgba(255,255,255,.16);
+  border:1px solid rgba(255,255,255,.5);border-radius:999px;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45);
+  transition:all .25s var(--ease);
+}
+.btn-line:hover{background:rgba(255,255,255,.45);border-color:rgba(255,255,255,.85);
+  color:#3d3590;transform:translateY(-1.5px);box-shadow:0 8px 20px rgba(27,34,64,.12), inset 0 1px 0 rgba(255,255,255,.7)}
+.btn-line:active{transform:scale(.96);background:rgba(255,255,255,.6)}
+.btn-line:focus-visible{outline:none;box-shadow:0 0 0 2px #fff,0 0 0 4.5px var(--violet)}
+
+/* ============ 主菜单：月相账簿（lunar ledger） ============ */
+.ledger{position:absolute;left:5.5%;top:33%;width:400px}
+.ledger-cap{display:flex;align-items:center;gap:10px;font-size:10px;letter-spacing:3.5px;
+  color:var(--sub);font-weight:700;padding:10px 4px}
+.ledger-cap::after{content:"";flex:1;height:1px;
+  background:repeating-linear-gradient(90deg,var(--hair) 0 3px,transparent 3px 8px)}
+.lrow{
+  position:relative;display:flex;align-items:center;gap:16px;padding:13px 14px;cursor:pointer;
+  border-bottom:1px solid rgba(106,95,208,.14);
+  transition:transform .3s var(--spring), background .3s var(--ease);
+}
+.lrow .idx{font-family:var(--mono);font-size:10px;color:var(--mute);width:20px;letter-spacing:1px}
+.lrow .zh{font-size:19px;font-weight:400;letter-spacing:3px;transition:letter-spacing .4s var(--ease), color .3s}
+.lrow .en{margin-left:auto;font-family:var(--serif);font-style:italic;font-size:12.5px;color:var(--mute);
+  opacity:0;transform:translateX(-8px);transition:all .35s var(--ease)}
+.lrow:hover{background:linear-gradient(90deg,var(--violet-soft),transparent 75%);transform:translateX(12px)}
+.lrow:hover .zh{letter-spacing:5px;color:#3d3590}
+.lrow:hover .en{opacity:1;transform:none}
+.lrow:hover .phase{background:var(--violet);box-shadow:inset 0 0 0 0 var(--violet);transform:rotate(40deg)}
+.lrow:active{transform:translateX(12px) scale(.98)}
+.lrow.danger:hover{background:linear-gradient(90deg,rgba(178,72,66,.12),transparent 75%)}
+.lrow.danger:hover .zh{color:#a64440}
+.lrow.danger:hover .phase{background:#a64440;box-shadow:none}
+
+/* ============ 品牌区 ============ */
+.brand{position:absolute;left:5.5%;top:8.5%}
+.brand .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:6px;color:var(--sub)}
+.brand .eyebrow i{font-style:normal;color:var(--gold)}
+.brand h1{font-family:var(--serif);font-style:italic;font-weight:400;font-size:56px;color:var(--ink);
+  letter-spacing:1px;margin:8px 0 4px}
+.brand h1 b{font-style:normal;font-weight:700;font-family:"Microsoft YaHei UI";
+  background:linear-gradient(120deg,#38317e,#6a5fd0 55%,#4f7ec9);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.brand .tag{font-size:14px;letter-spacing:3px;color:var(--sub)}
+.brand .coord{margin-top:12px;font-family:var(--mono);font-size:10px;color:var(--mute);letter-spacing:1.5px}
+.ver-tag{position:absolute;right:4.5%;top:5%;text-align:right;font-family:var(--mono);
+  font-size:10.5px;color:var(--mute);letter-spacing:2px;line-height:2}
+.ver-tag i{font-style:normal;color:var(--gold)}
+
+/* ============ 顶栏 ============ */
+.g-top{position:absolute;left:0;right:0;top:0;height:88px;display:flex;align-items:center;gap:18px;padding:0 4.5%}
+.g-back{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:18px;color:var(--sub);cursor:pointer;border:1px solid var(--hair);
+  background:rgba(255,255,255,.3);backdrop-filter:blur(10px);transition:all .25s var(--spring)}
+.g-back:hover{transform:translateX(-3px);border-color:var(--violet);color:#3d3590;
+  background:rgba(255,255,255,.6);box-shadow:0 8px 20px rgba(27,34,64,.14)}
+.g-back:active{transform:translateX(-3px) scale(.9)}
+.g-title{font-size:24px;font-weight:300;letter-spacing:3px}
+.g-title b{font-weight:800}
+.g-sub{font-family:var(--mono);font-size:10.5px;color:var(--mute);letter-spacing:2px;margin-top:2px}
+
+/* ============ 页面切换 ============ */
+.screen{position:absolute;inset:0;opacity:0;pointer-events:none;
+  transform:translateY(16px) scale(.994);filter:blur(3px);
+  transition:opacity .4s var(--ease),transform .5s var(--ease),filter .4s}
+.screen.on{opacity:1;pointer-events:auto;transform:none;filter:none}
+.screen.on .rise{animation:rise .6s var(--ease) both;animation-delay:calc(var(--i,0)*65ms + .1s)}
+@keyframes rise{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* ============ 启动器 ============ */
+#stage-launcher{display:none;align-items:center;justify-content:center;
+  background:url("assets/default-background.png") center/cover}
+#stage-launcher.on{display:flex}
+#stage-launcher::before{content:"";position:absolute;inset:0;background:rgba(240,243,251,.18)}
+.launcher{
+  position:relative;width:min(1020px,94vw);height:min(620px,86vh);overflow:hidden;border-radius:22px;
+  display:flex;flex-direction:column;background:rgba(250,251,254,.12);
+  backdrop-filter:blur(36px) saturate(1.3);-webkit-backdrop-filter:blur(36px) saturate(1.3);
+  border:1px solid rgba(255,255,255,.45);
+  box-shadow:0 40px 100px rgba(27,34,64,.24), inset 0 1px 0 rgba(255,255,255,.55);
+  animation:winIn .7s var(--ease) both .1s;
+}
+.launcher::before,.launcher::after{display:none}
+@keyframes winIn{from{opacity:0;transform:translateY(28px) scale(.97)}to{opacity:1;transform:none}}
+.l-orbit{position:absolute;right:-90px;top:-90px;width:300px;height:300px;opacity:.7}
+.l-orbit2{position:absolute;right:-40px;top:-40px;width:200px;height:200px}
+.l-title{position:relative;height:50px;display:flex;align-items:center;gap:12px;padding:0 18px;z-index:3;
+  border-bottom:1px solid rgba(106,95,208,.16)}
+.moon-logo{width:20px;height:20px;border-radius:50%;flex:none;
+  box-shadow:inset 6px -2.5px 0 0 var(--violet)}
+.l-title .name{font-weight:700;font-size:13.5px;letter-spacing:2px}
+.l-title .name i{font-family:var(--serif);font-weight:400;color:var(--sub)}
+.l-title .ver{margin-left:8px;font-family:var(--mono);font-size:10px;color:var(--mute);letter-spacing:1px}
+.winctl{margin-left:auto;display:flex;gap:8px}
+.winctl i{width:11px;height:11px;border-radius:50%;display:block;opacity:.75;transition:all .2s}
+.winctl i:hover{opacity:1;transform:scale(1.15)}
+.winctl i:nth-child(1){background:#b9c4d6}.winctl i:nth-child(2){background:#e2c56a}.winctl i:nth-child(3){background:#d58a83}
+.l-main{position:relative;flex:1;display:flex;z-index:2;min-height:0}
+.l-side{width:160px;padding:22px 10px;border-right:1px solid rgba(106,95,208,.12);position:relative}
+.l-nav{display:flex;align-items:center;gap:12px;padding:11px 16px;font-size:13.5px;font-weight:600;
+  letter-spacing:2px;color:var(--sub);cursor:pointer;border-radius:999px;transition:all .25s var(--ease)}
+.l-nav .phase{width:12px;height:12px;box-shadow:inset 4px -1.5px 0 0 var(--mute)}
+.l-nav:hover{color:var(--ink);background:rgba(255,255,255,.4)}
+.l-nav.on{color:#3d3590;background:rgba(255,255,255,.55);box-shadow:0 4px 14px rgba(27,34,64,.10), inset 0 1px 0 rgba(255,255,255,.7)}
+.l-nav.on .phase{background:var(--violet);box-shadow:none}
+.l-pages{flex:1;position:relative;overflow:hidden}
+.l-page{position:absolute;inset:0;padding:36px 40px;opacity:0;pointer-events:none;
+  transform:translateX(24px);transition:opacity .35s var(--ease),transform .45s var(--ease)}
+.l-page.on{opacity:1;pointer-events:auto;transform:none}
+.l-page.on .rise{animation:rise .55s var(--ease) both;animation-delay:calc(var(--i,0)*75ms + .08s)}
+.l-h1{font-size:36px;font-weight:200;letter-spacing:8px}
+.l-h2{font-family:var(--mono);font-size:10.5px;letter-spacing:3px;color:var(--mute);margin:8px 0 28px}
+.l-panel{max-width:450px;padding:22px 24px}
+.l-label{font-size:10px;letter-spacing:2.5px;color:var(--sub);font-weight:700;margin-bottom:10px;
+  display:flex;align-items:center;gap:8px}
+.l-label::before{content:"";width:6px;height:6px;background:var(--violet);border-radius:1px;transform:rotate(45deg)}
+.input{
+  width:100%;padding:11px 14px;font-size:12.5px;font-family:var(--mono);color:var(--sub);
+  background:rgba(255,255,255,.45);border:none;border-bottom:1.5px solid var(--hair);
+  outline:none;transition:all .3s;letter-spacing:.5px;
+}
+.input:focus{border-bottom-color:var(--violet);background:rgba(255,255,255,.75);
+  box-shadow:0 6px 14px -6px rgba(106,95,208,.25)}
+.l-row{display:flex;gap:12px;align-items:flex-end}
+.l-status{max-width:450px;margin-top:18px;padding:14px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:5px 13px;font-size:11px;font-weight:700;
+  letter-spacing:1px;color:var(--sub);border:1px solid rgba(255,255,255,.55);border-radius:999px;
+  background:rgba(255,255,255,.28);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.pill .dot{width:6px;height:6px;border-radius:50%;background:#8a97ab}
+.pill .dot.ok{background:#3f8f6f}.pill .dot.warn{background:#b5802f}.pill .dot.danger{background:#c0564f}
+.l-details{margin-top:14px;font-size:12px;color:var(--sub);cursor:pointer;font-weight:600;letter-spacing:1px;
+  display:inline-flex;align-items:center;gap:8px;transition:color .2s}
+.l-details:hover{color:#3d3590}
+.l-details .arrow{display:inline-block;transition:transform .3s var(--ease);color:var(--violet)}
+.l-details.open .arrow{transform:rotate(90deg)}
+.l-detail-body{max-width:450px;overflow:hidden;max-height:0;opacity:0;
+  transition:max-height .45s var(--ease),opacity .35s,margin .35s}
+.l-detail-body.open{max-height:140px;opacity:1;margin-top:10px}
+.l-detail-inner{padding:14px 18px;font-size:12px;color:var(--sub);line-height:1.9}
+.l-foot{position:relative;height:38px;display:flex;align-items:center;padding:0 18px;z-index:3;
+  font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--mute);
+  border-top:1px solid rgba(106,95,208,.14)}
+.l-foot i{font-style:normal;color:var(--gold);margin:0 6px}
+/* 滑块 */
+.slider-row{margin-top:20px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:2px;
+  background:linear-gradient(90deg,var(--violet) var(--fill,31%),rgba(106,95,208,.2) var(--fill,31%));
+  outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;
+  background:transparent;box-shadow:inset 5px -2px 0 0 var(--violet);
+  transition:all .2s var(--spring)}
+input[type=range]::-webkit-slider-thumb:hover{box-shadow:inset 0 0 0 8px var(--violet);transform:scale(1.2)}
+
+/* ============ 单人游戏：居中账簿列表（贴合原版竖排结构） ============ */
+.sp-center{position:absolute;left:50%;top:15%;transform:translateX(-50%);width:440px}
+.sp-center .lrow{justify-content:flex-start;text-align:left}
+.sp-center .zh{flex:1;text-align:center;letter-spacing:4px}
+.sp-center .en{position:absolute;right:14px}
+
+/* ============ 多人大厅 ============ */
+.mp-list{position:absolute;left:4.5%;top:26%;width:430px}
+.mp-side{position:absolute;right:4.5%;top:26%;width:320px;padding:20px 22px}
+.chip{padding:7px 14px;font-family:var(--mono);font-size:10.5px;letter-spacing:1px;cursor:pointer;
+  border:1px solid rgba(255,255,255,.5);border-radius:999px;color:var(--sub);
+  background:rgba(255,255,255,.2);backdrop-filter:blur(8px);
+  transition:all .2s var(--spring);display:inline-block}
+.chip:hover{border-color:rgba(255,255,255,.85);color:#3d3590;background:rgba(255,255,255,.5);transform:translateY(-2px)}
+.chip:active{transform:scale(.94)}
+
+/* ============ 服务器列表 ============ */
+.srv-panel{position:absolute;left:4.5%;right:4.5%;top:108px;bottom:98px;overflow:hidden;
+  display:flex;flex-direction:column}
+.srv-row{display:grid;grid-template-columns:2.2fr 1.4fr .7fr .8fr .8fr .9fr;gap:8px;
+  padding:12px 22px;font-size:13px;align-items:center;cursor:pointer;
+  border-bottom:1px solid rgba(106,95,208,.12);transition:background .2s,transform .2s}
+.srv-row:not(.head):hover{background:rgba(255,255,255,.42);transform:translateX(4px)}
+.srv-row.head{font-family:var(--mono);font-size:9.5px;letter-spacing:2.5px;color:var(--mute);
+  font-weight:700;cursor:default;border-bottom:1.5px solid var(--hair)}
+.srv-row .nm{font-weight:700;letter-spacing:.5px}
+.srv-row .mono{color:var(--sub);font-size:12px}
+.ping{font-family:var(--mono);font-weight:700;font-size:12.5px}
+.ping.good{color:#3f8f6f}.ping.mid{color:#b5802f}.ping.bad{color:#c0564f}
+.srv-foot{position:absolute;left:4.5%;right:4.5%;bottom:4.5%;display:flex;gap:14px;align-items:center}
+.srv-foot .spacer{margin-left:auto;font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--mute)}
+
+/* ============ 战役室 ============ */
+.room-info{position:absolute;right:3.5%;top:98px;width:330px;padding:18px 22px;font-size:13px}
+.room-info .ri{display:flex;gap:10px;padding:4.5px 0;align-items:baseline}
+.room-info .ri b{font-size:10px;letter-spacing:2px;color:var(--sub);font-weight:700;min-width:74px}
+.room-info .ri span{font-family:var(--mono);font-size:12.5px;color:var(--ink);font-weight:700}
+.room-info .sep{height:1px;margin:10px 0;
+  background:repeating-linear-gradient(90deg,var(--hair) 0 3px,transparent 3px 8px)}
+.room-info.bad{background:transparent;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+.room-info.bad::before,.room-info.bad::after{display:none}
+.room-info.bad .ri b,.room-info.bad .ri span{color:#fff;text-shadow:0 1px 2px rgba(255,255,255,.4);
+  font-family:"Microsoft YaHei UI";font-size:14px;font-weight:600;letter-spacing:0}
+.room-map{position:absolute;left:4.5%;top:98px;width:296px;padding:12px}
+.room-map .thumb{height:146px;overflow:hidden;position:relative;
+  background:linear-gradient(135deg,#7c87c9,#a3b0e0)}
+.room-map .thumb::after{content:"MAP PREVIEW";position:absolute;left:10px;bottom:8px;
+  font-family:var(--mono);font-size:9px;letter-spacing:2px;color:#fff;
+  background:rgba(27,34,64,.6);padding:3px 8px}
+.room-map .cap{margin-top:9px;font-family:var(--mono);font-size:10.5px;color:var(--sub);letter-spacing:1px}
+.room-players{position:absolute;left:4.5%;top:290px;bottom:148px;width:min(560px,47%);padding:12px 18px;overflow:hidden}
+.pr{display:grid;grid-template-columns:20px 1.7fr .9fr .9fr .8fr;gap:10px;align-items:center;
+  padding:8px 10px;font-size:13px;border-bottom:1px solid rgba(106,95,208,.1);transition:background .2s}
+.pr:not(.head):hover{background:rgba(255,255,255,.38)}
+.pr.head{font-family:var(--mono);font-size:9px;color:var(--mute);letter-spacing:2px;font-weight:700}
+.pr .sw{width:13px;height:13px;border-radius:3px;border:1px solid rgba(27,34,64,.25)}
+.pr.host-row{background:var(--violet-soft)}
+.pr .mono{font-size:11.5px;color:var(--sub)}
+.room-side{position:absolute;right:3.5%;top:calc(98px + 240px);width:330px;padding:16px 20px}
+.room-side .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.room-actions{position:absolute;right:3.5%;bottom:148px;display:flex;gap:14px}
+/* 聊天框：默认收起为一条输入栏，点头栏展开历史消息 */
+.room-chat{position:absolute;left:4.5%;right:3.5%;bottom:4.5%;padding:9px 18px 12px;
+  display:flex;flex-direction:column}
+.chat-head{display:flex;align-items:center;gap:10px;font-size:10px;letter-spacing:2.5px;
+  color:var(--sub);font-weight:700;cursor:pointer;padding:2px 0;transition:color .2s}
+.chat-head:hover{color:#3d3590}
+.chat-head .phase{width:11px;height:11px;box-shadow:inset 3.5px -1.5px 0 0 var(--violet)}
+.chat-head:hover .phase{background:var(--violet);box-shadow:none}
+.chat-head .cnt{font-family:var(--mono);color:var(--mute);letter-spacing:1px}
+.chat-head .arrow{margin-left:auto;color:var(--violet);font-size:11px;
+  transition:transform .35s var(--ease)}
+.room-chat.open .chat-head .arrow{transform:rotate(180deg)}
+.chat-log{overflow:hidden;max-height:0;opacity:0;font-size:12px;color:var(--sub);line-height:1.85;
+  transition:max-height .45s var(--ease),opacity .3s,margin .3s}
+.room-chat.open .chat-log{max-height:136px;opacity:1;margin:8px 0 2px;overflow-y:auto}
+.chat-log b{color:var(--ink)}
+.chat-log .mono{font-size:11px}
+.chat-bar{display:flex;gap:10px;margin-top:7px;align-items:flex-end}
+.chat-bar .input{flex:1}
+.room-toggle{position:absolute;right:3.5%;top:56px;display:flex;gap:8px;z-index:5}
+.room-toggle button{padding:5px 14px;font-size:10.5px;letter-spacing:1.5px;cursor:pointer;font-family:var(--mono);
+  border:1px solid var(--hair);background:rgba(255,255,255,.35);color:var(--sub);transition:all .2s;border-radius:2px}
+.room-toggle button.on{background:var(--night);color:var(--silver);border-color:transparent;font-weight:700}
+
+/* ============ 夜间模式覆盖（月轨·夜） ============ */
+body.dark{color:#e8ebfa}
+body.dark .hud{background:linear-gradient(170deg,rgba(23,27,56,.42),rgba(23,27,56,.16));
+  border-color:rgba(146,152,222,.22);
+  box-shadow:0 14px 36px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08)}
+body.dark .hud-cap{color:#aab2d6}
+body.dark .brand h1{color:#eef0ff}
+body.dark .brand h1 b{background:linear-gradient(120deg,#b9aef0,#8ea0f0 55%,#9ec2ee);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+body.dark .brand .tag{color:#aab2d6}
+body.dark .brand .eyebrow{color:#8f98c4}
+body.dark .coord{color:#767fa8}
+body.dark .ver-tag{color:#767fa8}
+body.dark .phase{filter:brightness(1.55)}
+body.dark .lrow{border-bottom-color:rgba(146,152,222,.16)}
+body.dark .lrow .zh{color:#e8ebfa}
+body.dark .lrow .idx{color:#767fa8}
+body.dark .lrow .en{color:#8f98c4}
+body.dark .lrow:hover{background:linear-gradient(90deg,rgba(146,132,232,.16),transparent 75%)}
+body.dark .lrow:hover .zh{color:#fff}
+body.dark .lrow.danger:hover .zh{color:#e08a83}
+body.dark .g-title{color:#e8ebfa}
+body.dark .g-sub{color:#767fa8}
+body.dark .g-back{color:#aab2d6;border-color:rgba(146,152,222,.3);background:rgba(23,27,56,.35)}
+body.dark .g-back:hover{color:#fff;background:rgba(60,66,120,.5)}
+body.dark .btn-line{color:#dfe4fa;background:rgba(23,27,56,.28);border-color:rgba(146,152,222,.3);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+body.dark .btn-line:hover{background:rgba(60,66,120,.45);border-color:rgba(238,240,255,.5);color:#fff}
+body.dark .btn-moon{color:#eef0ff;
+  background:
+    radial-gradient(circle at 18% 28%, rgba(255,255,255,.5) 0 1px, transparent 1.8px) padding-box,
+    radial-gradient(circle at 76% 64%, rgba(255,255,255,.35) 0 1px, transparent 1.8px) padding-box,
+    linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,0) 60%) padding-box,
+    linear-gradient(150deg, rgba(146,132,232,.5), rgba(106,95,208,.4) 55%, rgba(96,126,208,.46)) padding-box,
+    linear-gradient(150deg, rgba(238,240,255,.85), rgba(238,240,255,.15) 45%, rgba(238,240,255,.5)) border-box;
+  box-shadow:0 6px 22px rgba(0,0,0,.4), 0 0 26px rgba(146,132,232,.3), inset 0 1px 0 rgba(255,255,255,.3)}
+body.dark .btn-moon .orbit-dot{border-color:rgba(238,240,255,.7)}
+body.dark .btn-moon .orbit-dot::after{background:#e8ebfa;box-shadow:0 0 6px rgba(232,235,250,.9)}
+body.dark .input{background:rgba(23,27,56,.3);color:#dfe4fa;border-bottom-color:rgba(146,152,222,.35)}
+body.dark .input:focus{background:rgba(40,46,90,.5);border-bottom-color:#8ea0f0}
+body.dark .pill{color:#aab2d6;background:rgba(23,27,56,.32);border-color:rgba(146,152,222,.28)}
+body.dark .chip{color:#aab2d6;background:rgba(23,27,56,.28);border-color:rgba(146,152,222,.3)}
+body.dark .chip:hover{color:#fff;background:rgba(60,66,120,.45);border-color:rgba(238,240,255,.5)}
+body.dark .srv-row{border-bottom-color:rgba(146,152,222,.12)}
+body.dark .srv-row:not(.head):hover{background:rgba(60,66,120,.3)}
+body.dark .srv-row .nm{color:#e8ebfa}
+body.dark .srv-row .mono{color:#aab2d6}
+body.dark .pr{border-bottom-color:rgba(146,152,222,.1)}
+body.dark .pr:not(.head):hover{background:rgba(60,66,120,.28)}
+body.dark .pr .mono{color:#aab2d6}
+body.dark .pr.host-row{background:rgba(146,132,232,.16)}
+body.dark .room-info .ri b{color:#8f98c4}
+body.dark .room-info .ri span{color:#e8ebfa}
+body.dark .room-map .cap{color:#8f98c4}
+body.dark .chat-head{color:#8f98c4}
+body.dark .chat-head:hover{color:#cdd3ff}
+body.dark .chat-log{color:#aab2d6}
+body.dark .chat-log b{color:#e8ebfa}
+body.dark .room-toggle button{background:rgba(23,27,56,.35);color:#aab2d6;border-color:rgba(146,152,222,.3)}
+body.dark .room-toggle button.on{background:rgba(146,132,232,.55);color:#161d42}
+/* 启动器·夜 */
+body.dark #stage-launcher::before{background:rgba(10,13,30,.55)}
+body.dark .launcher{background:rgba(16,20,44,.32);border-color:rgba(146,152,222,.22);
+  box-shadow:0 40px 100px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08)}
+body.dark .l-title{border-bottom-color:rgba(146,152,222,.16)}
+body.dark .l-title .name{color:#e8ebfa}
+body.dark .moon-logo{box-shadow:inset 6px -2.5px 0 0 #a89ef0}
+body.dark .l-side{border-right-color:rgba(146,152,222,.14)}
+body.dark .l-nav{color:#8f98c4}
+body.dark .l-nav:hover{color:#e8ebfa;background:rgba(60,66,120,.3)}
+body.dark .l-nav.on{color:#cdd3ff;background:rgba(146,132,232,.2);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+body.dark .l-h1{color:#eef0ff}
+body.dark .l-h2{color:#767fa8}
+body.dark .l-label{color:#8f98c4}
+body.dark .l-details{color:#8f98c4}
+body.dark .l-details:hover{color:#cdd3ff}
+body.dark .l-detail-inner{color:#aab2d6}
+body.dark .l-foot{border-top-color:rgba(146,152,222,.14);color:#5f6890}
+body.dark .stream-label{color:#5f6890}
+body.dark input[type=range]{background:linear-gradient(90deg,#8ea0f0 var(--fill,31%),rgba(146,152,222,.25) var(--fill,31%))}
+
+/* Toast */
+.toast{position:fixed;left:50%;bottom:70px;transform:translate(-50%,20px);z-index:100;
+  padding:11px 24px;font-size:12px;font-weight:600;letter-spacing:2px;color:var(--silver);
+  background:linear-gradient(150deg,rgba(42,49,100,.72),rgba(86,72,168,.66));
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid rgba(233,234,252,.35);border-radius:999px;
+  box-shadow:0 16px 40px rgba(43,48,110,.32);opacity:0;pointer-events:none;transition:all .35s var(--ease)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+
+<div class="proto-bar">
+  <b>RWNoctiluna</b><span class="v4tag">v7 · 月轨·昼夜</span>
+  <span class="proto-hint">点月相按钮切换白昼 / 月夜，背景图自动压暗成夜景</span>
+  <div class="proto-switch">
+    <button id="swLauncher" class="on">◐ 启动器</button>
+    <button id="swGame">◑ 游戏菜单</button>
+  </div>
+</div>
+
+<!-- ==================== 启动器 ==================== -->
+<div class="stage on" id="stage-launcher">
+  <div class="launcher">
+    <div class="orbit l-orbit"></div>
+    <div class="orbit o2 l-orbit2"></div>
+    <div class="l-title">
+      <div class="moon-logo"></div>
+      <span class="name">RWNoctiluna</span>
+      <span class="ver">v0.80.x</span>
+      <button class="theme-toggle" style="margin-left:auto;width:34px;height:34px" onclick="toggleTheme()" title="切换昼 / 夜"><span class="phase" style="width:15px;height:15px"></span></button>
+      <div class="winctl" style="margin-left:12px"><i></i><i></i><i></i></div>
+    </div>
+    <div class="l-main">
+      <div class="l-side">
+        <div class="l-nav on" data-page="home"><span class="phase"></span>首 页</div>
+        <div class="l-nav" data-page="settings"><span class="phase"></span>设 置</div>
+      </div>
+      <div class="l-pages">
+        <div class="l-page on" id="page-home">
+          <div class="l-h1 rise" style="--i:0">铁锈<b>战争</b></div>
+          <div class="l-h2 rise" style="--i:1">RUSTED WARFARE · NOCTILUNA CLIENT · LUNAR LINK READY</div>
+          <div class="l-panel hud rise" style="--i:2">
+            <div class="l-label">游戏目录 / GAME PATH</div>
+            <div class="l-row">
+              <input class="input" value="D:\steam\steamapps\common\Rusted Warfare" readonly>
+              <button class="btn-line" onclick="toast('原型演示：正式版将打开系统文件夹选择框')">选择目录</button>
+            </div>
+            <button class="btn-moon" style="width:100%;margin-top:18px" onclick="toast('原型演示：不会真正启动游戏')">
+              <span class="orbit-dot"></span>启动游戏
+            </button>
+          </div>
+          <div class="l-status hud rise" style="--i:3">
+            <span class="pill"><span class="dot"></span>尚未启动</span>
+            <span style="font-family:var(--mono);font-size:10.5px;letter-spacing:1px;color:var(--mute)">反作弊能力待红队验证</span>
+          </div>
+          <div class="l-details rise" style="--i:4" id="detailToggle"><span class="arrow">▸</span> 启动与防护详情</div>
+          <div class="l-detail-body rise" style="--i:4" id="detailBody">
+            <div class="l-detail-inner hud">
+              尚未启动。防护状态为客户端自报，真实 CE 防护效果待红队验证。<br>
+              日志仅保存在本机，完整记录见 logs\最近一次启动.txt
+            </div>
+          </div>
+        </div>
+        <div class="l-page" id="page-settings">
+          <div class="l-h1 rise" style="--i:0;font-size:28px">设<b>置</b></div>
+          <div class="l-h2 rise" style="--i:1">PREFERENCES</div>
+          <div class="l-panel hud rise" style="--i:2">
+            <div class="l-label">游戏目录（与首页同步）</div>
+            <div class="l-row">
+              <input class="input" value="D:\steam\steamapps\common\Rusted Warfare" readonly>
+              <button class="btn-line" onclick="toast('原型演示')">选择目录</button>
+            </div>
+          </div>
+          <div class="l-panel hud rise" style="--i:3;margin-top:16px">
+            <div class="l-label">背景图片</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn-line" onclick="toast('原型演示：选择本机 JPG/PNG')">选择图片…</button>
+              <button class="btn-line" onclick="setMask(80)">移除背景</button>
+              <button class="btn-line" onclick="setMask(25)">恢复默认背景</button>
+            </div>
+            <div class="slider-row">
+              <div style="font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;color:var(--sub);margin-bottom:10px">
+                浅色遮罩 <b id="maskVal" style="color:#3d3590">25%</b>　<span style="color:var(--mute)">拖动滑块实时预览</span>
+              </div>
+              <input type="range" id="maskSlider" min="0" max="80" value="25">
+            </div>
+            <div style="font-size:11px;color:var(--mute);margin-top:14px;letter-spacing:.5px">
+              图片仅在本地显示，不会上传，也不会写入游戏目录；背景失效不会阻止启动游戏。
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="l-foot">LOCAL LOGS ONLY<i>◐</i>SETTINGS → launcher-settings.json<i>◑</i>NOCTILUNA LUNAR ORBITAL UI</div>
+  </div>
+</div>
+
+<!-- ==================== 游戏菜单 ==================== -->
+<div class="stage" id="stage-game">
+  <div class="screen-base">
+    <div class="bgimg" id="gameBg"></div>
+    <div class="veil" id="gameVeil"></div>
+    <div class="veil-dark"></div>
+    <button class="theme-toggle rise" style="position:absolute;right:2.2%;top:3.5%" onclick="toggleTheme()" title="切换昼 / 夜"><span class="phase"></span></button>
+    <div class="stream" style="left:47%"></div>
+    <div class="stream-label" style="left:calc(47% + 8px)">LUNAR DATA STREAM · CH-01</div>
+    <div class="stream" style="right:18%"></div>
+    <div class="stream-label" style="right:calc(18% - 20px)">TELEMETRY · 0x2F</div>
+    <div class="scan"></div>
+    <div class="crescent-mark" style="right:6%;top:10%;width:190px;height:190px"></div>
+    <div class="orbit" style="left:-110px;bottom:-140px;width:380px;height:380px"></div>
+
+    <!-- 主菜单 -->
+    <div class="screen on" id="scr-menu">
+      <div class="brand">
+        <div class="eyebrow rise" style="--i:0">RUSTED WARFARE <i>◐</i> CLIENT</div>
+        <h1 class="rise" style="--i:1">RW<b>Noctiluna</b></h1>
+        <div class="tag rise" style="--i:2">客户端增强 · 月轨界面</div>
+        <div class="coord rise" style="--i:3">LAT 31.23 N · LON 121.47 E · PHASE ◐ WAXING</div>
+      </div>
+      <div class="ver-tag rise" style="--i:2;top:12%">BUILD <i>0.80.x</i><br>LUNAR ORBITAL UI <i>v7</i><br>STATUS · STANDBY</div>
+      <div class="ledger">
+        <div class="ledger-cap rise" style="--i:3">开 始 游 戏</div>
+        <div class="lrow rise" style="--i:4" onclick="toast('继续上局游戏')"><span class="phase"></span><span class="idx">01</span><span class="zh">继续游戏</span><span class="en">Resume</span></div>
+        <div class="lrow rise" style="--i:5" onclick="go('scr-sp')"><span class="phase"></span><span class="idx">02</span><span class="zh">单人游戏</span><span class="en">Solo</span></div>
+        <div class="lrow rise" style="--i:6" onclick="go('scr-mp')"><span class="phase"></span><span class="idx">03</span><span class="zh">多人游戏</span><span class="en">Online</span></div>
+        <div class="ledger-cap rise" style="--i:7">客 户 端 增 强</div>
+        <div class="lrow rise" style="--i:8" onclick="toast('隐藏房间列表演示略')"><span class="phase"></span><span class="idx">04</span><span class="zh">隐藏列表</span><span class="en">Hidden</span></div>
+        <div class="lrow rise" style="--i:9" onclick="toast('设置页演示略')"><span class="phase"></span><span class="idx">05</span><span class="zh">设置</span><span class="en">Config</span></div>
+        <div class="lrow rise" style="--i:10" onclick="toast('帮助页演示略')"><span class="phase"></span><span class="idx">06</span><span class="zh">帮助</span><span class="en">Help</span></div>
+        <div class="lrow danger rise" style="--i:11" onclick="switchStage('launcher')"><span class="phase"></span><span class="idx">07</span><span class="zh">退出</span><span class="en">Exit</span></div>
+      </div>
+    </div>
+
+    <!-- 单人游戏（贴合原版居中竖排结构） -->
+    <div class="screen" id="scr-sp">
+      <div class="g-top">
+        <div class="g-back" onclick="go('scr-menu')">←</div>
+        <div><div class="g-title">单人<b>游戏</b></div><div class="g-sub">SOLO · CAMPAIGN · SKIRMISH</div></div>
+      </div>
+      <div class="sp-center">
+        <div class="lrow rise" style="--i:1" onclick="toast('进入战役')"><span class="phase"></span><span class="zh">战役</span><span class="en">Campaign</span></div>
+        <div class="lrow rise" style="--i:2" onclick="toast('进入遭遇战')"><span class="phase"></span><span class="zh">遭遇战</span><span class="en">Skirmish</span></div>
+        <div class="lrow rise" style="--i:3" onclick="toast('挑战任务')"><span class="phase"></span><span class="zh">挑战任务</span><span class="en">Challenge</span></div>
+        <div class="lrow rise" style="--i:4" onclick="toast('无尽生存')"><span class="phase"></span><span class="zh">无尽生存</span><span class="en">Survival</span></div>
+        <div class="lrow rise" style="--i:5" onclick="toast('自定义地图')"><span class="phase"></span><span class="zh">自定义地图</span><span class="en">Custom Maps</span></div>
+        <div class="lrow rise" style="--i:6" onclick="toast('沙盒编辑器')"><span class="phase"></span><span class="zh">沙盒编辑器</span><span class="en">Sandbox</span></div>
+        <div class="lrow rise" style="--i:7" onclick="toast('加载保存的游戏')"><span class="phase"></span><span class="zh">加载保存的游戏</span><span class="en">Load</span></div>
+        <div class="lrow rise" style="--i:8" onclick="go('scr-menu')"><span class="phase"></span><span class="zh">返回</span><span class="en">Back</span></div>
+      </div>
+    </div>
+
+    <!-- 多人游戏 -->
+    <div class="screen" id="scr-mp">
+      <div class="g-top">
+        <div class="g-back" onclick="go('scr-menu')">←</div>
+        <div><div class="g-title">多人<b>游戏</b></div><div class="g-sub">ONLINE · UPLINK</div></div>
+      </div>
+      <div class="mp-list">
+        <div class="ledger" style="position:static;width:100%">
+          <div class="lrow rise" style="--i:1" onclick="go('scr-servers')"><span class="phase"></span><span class="idx">S1</span><span class="zh">服务器列表</span><span class="en">Browse</span></div>
+          <div class="lrow rise" style="--i:2" onclick="toast('输入 IP 直连（演示略）')"><span class="phase"></span><span class="idx">S2</span><span class="zh">直接连接</span><span class="en">Direct</span></div>
+          <div class="lrow rise" style="--i:3" onclick="go('scr-room')"><span class="phase"></span><span class="idx">S3</span><span class="zh">主机新游戏</span><span class="en">Host</span></div>
+        </div>
+      </div>
+      <div class="mp-side hud rise" style="--i:2">
+        <div class="hud-cap">玩 家 昵 称</div>
+        <input class="input" value="NoctilunaPlayer" style="margin-top:12px">
+        <div class="hud-cap" style="margin-top:20px">最 近 加 入</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+          <span class="chip" onclick="go('scr-room')">172.24.x.x:5123 · SKIRMISH</span>
+          <span class="chip" onclick="go('scr-room')">relay1.example:5123 · 2V2</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 服务器列表 -->
+    <div class="screen" id="scr-servers">
+      <div class="g-top">
+        <div class="g-back" onclick="go('scr-mp')">←</div>
+        <div><div class="g-title">服务器<b>列表</b></div><div class="g-sub">24 NODES · UPDATED JUST NOW</div></div>
+        <div style="margin-left:auto;display:flex;gap:12px;align-items:flex-end">
+          <input class="input" placeholder="搜索服务器或地图…" style="width:210px">
+          <button class="btn-line" onclick="toast('正在刷新…')">刷新</button>
+        </div>
+      </div>
+      <div class="srv-panel hud rise" style="--i:1">
+        <div class="srv-row head"><div>SERVER</div><div>MAP</div><div>PLAYERS</div><div>PING</div><div>VER</div><div>STATUS</div></div>
+        <div class="srv-row" onclick="go('scr-room')"><div class="nm">官方中继 · 华东</div><div class="mono">Crossing Large</div><div class="mono">6/10</div><div class="ping good">32ms</div><div class="mono">1.15</div><div><span class="pill"><span class="dot ok"></span>游戏中</span></div></div>
+        <div class="srv-row" onclick="go('scr-room')"><div class="nm">官方中继 · 华南</div><div class="mono">Two Sides</div><div class="mono">3/8</div><div class="ping good">47ms</div><div class="mono">1.15</div><div><span class="pill"><span class="dot"></span>等待中</span></div></div>
+        <div class="srv-row" onclick="go('scr-room')"><div class="nm">[社区] 周末混战房</div><div class="mono">Valley Arena</div><div class="mono">9/10</div><div class="ping mid">88ms</div><div class="mono">1.15</div><div><span class="pill"><span class="dot ok"></span>游戏中</span></div></div>
+        <div class="srv-row" onclick="go('scr-room')"><div class="nm">[社区] 新手友好 2v2</div><div class="mono">Ice Ridge</div><div class="mono">2/4</div><div class="ping mid">104ms</div><div class="mono">1.15</div><div><span class="pill"><span class="dot"></span>等待中</span></div></div>
+        <div class="srv-row" onclick="toast('高延迟服务器仍可按需加入')"><div class="nm">EU Relay 03</div><div class="mono">Desert Strike</div><div class="mono">5/10</div><div class="ping bad">212ms</div><div class="mono">1.15</div><div><span class="pill"><span class="dot warn"></span>高延迟</span></div></div>
+        <div class="srv-row" style="color:var(--mute);cursor:default"><div class="nm" style="color:var(--mute)">未知服务器</div><div class="mono">—</div><div class="mono">—</div><div class="ping" style="color:var(--mute)">超时</div><div class="mono">—</div><div><span class="pill"><span class="dot danger"></span>不可达</span></div></div>
+      </div>
+      <div class="srv-foot rise" style="--i:2">
+        <button class="btn-moon" onclick="go('scr-room')"><span class="orbit-dot"></span>加入服务器</button>
+        <button class="btn-line" onclick="toast('输入 IP 直连（演示略）')">直接连接…</button>
+        <span class="spacer">版本不匹配的服务器已自动隐藏</span>
+      </div>
+    </div>
+
+    <!-- 战役室 -->
+    <div class="screen" id="scr-room">
+      <div class="g-top">
+        <div class="g-back" onclick="go('scr-mp')">←</div>
+        <div><div class="g-title">战役<b>室</b></div><div class="g-sub">HOST: NOCTILUNAPLAYER · WAITING</div></div>
+      </div>
+      <div class="room-toggle rise" style="--i:0">
+        <button id="tgFix" class="on" onclick="roomMode(true)">✓ FIXED</button>
+        <button id="tgBad" onclick="roomMode(false)">✗ ORIGINAL</button>
+      </div>
+      <div class="room-info hud rise" style="--i:1" id="roomInfo">
+        <div class="ri"><b>服务器地址</b><span>172.24.58.60:5123</span></div>
+        <div class="ri"><b>地址状态</b><span style="color:#b5802f">CLOSED · LAN ONLY</span></div>
+        <div class="sep"></div>
+        <div class="ri"><b>游戏模式</b><span>遭遇战 SKIRMISH</span></div>
+        <div class="ri"><b>地图</b><span>Crossing Large (10p)</span></div>
+        <div class="ri"><b>初始资金</b><span>DEFAULT $4000</span></div>
+        <div class="ri"><b>战争迷雾</b><span>ON</span></div>
+      </div>
+      <div class="room-map hud rise" style="--i:2">
+        <div class="thumb"></div>
+        <div class="cap">Crossing Large · MAX 10P</div>
+      </div>
+      <div class="room-players hud rise" style="--i:3">
+        <div class="pr head"><div></div><div>PLAYER</div><div>TEAM</div><div>COLOR</div><div>TYPE</div></div>
+        <div class="pr host-row"><div class="sw" style="background:#6a5fd0"></div><div><b>NoctilunaPlayer</b> <span class="mono" style="font-size:9.5px;color:var(--mute)">HOST</span></div><div class="mono">T1</div><div class="mono">月紫</div><div class="mono">玩家</div></div>
+        <div class="pr"><div class="sw" style="background:#c0564f"></div><div>友军 AI · 困难</div><div class="mono">T1</div><div class="mono">玫红</div><div class="mono">AI</div></div>
+        <div class="pr"><div class="sw" style="background:#3f8f6f"></div><div>敌方 AI · 非常困难</div><div class="mono">T2</div><div class="mono">青绿</div><div class="mono">AI</div></div>
+        <div class="pr" style="color:var(--mute)"><div class="sw" style="background:rgba(255,255,255,.6)"></div><div>空位 · 开放加入</div><div class="mono">—</div><div class="mono">—</div><div class="mono">—</div></div>
+        <div class="pr" style="color:var(--mute)"><div class="sw" style="background:rgba(255,255,255,.6)"></div><div>空位 · 开放加入</div><div class="mono">—</div><div class="mono">—</div><div class="mono">—</div></div>
+      </div>
+      <div class="room-side hud rise" style="--i:4">
+        <div class="hud-cap">房 间 设 置</div>
+        <div class="chips">
+          <span class="chip" onclick="toast('更换地图')">MAP</span>
+          <span class="chip" onclick="toast('初始资金')">CREDITS</span>
+          <span class="chip" onclick="toast('战争迷雾')">FOG</span>
+          <span class="chip" onclick="toast('AI 难度')">AI LV</span>
+          <span class="chip" onclick="toast('共享视野')">SHARED VISION</span>
+        </div>
+      </div>
+      <div class="room-actions rise" style="--i:5">
+        <button class="btn-line" onclick="toast('地址已复制（演示）')">复制地址</button>
+        <button class="btn-moon" onclick="toast('原型到此为止——对局内 UI 不动')"><span class="orbit-dot"></span>开始游戏</button>
+      </div>
+      <div class="room-chat hud rise" style="--i:6" id="roomChat">
+        <div class="chat-head" onclick="document.getElementById('roomChat').classList.toggle('open')">
+          <span class="phase"></span>聊 天 · CHAT<span class="cnt">4 条消息</span><span class="arrow">▴</span>
+        </div>
+        <div class="chat-log">
+          <div><b>SYS：</b><span class="mono">ROOM CREATED · 172.24.58.60:5123</span></div>
+          <div><b>NoctilunaPlayer：</b>人都齐了就开</div>
+          <div><b>SYS：</b><span class="mono">AI SLOT 2 · HARD · TEAM 1</span></div>
+          <div><b>NoctilunaPlayer：</b>地图先不换，Crossing 挺好</div>
+        </div>
+        <div class="chat-bar">
+          <input class="input" placeholder="输入聊天内容…">
+          <button class="btn-moon" style="padding:9px 22px;font-size:12px" onclick="toast('已发送（演示）')">发送</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function go(id){
+  document.querySelectorAll('#stage-game .screen').forEach(function(s){
+    s.classList.toggle('on', s.id===id);
+  });
+}
+function switchStage(which){
+  document.getElementById('stage-launcher').classList.toggle('on', which==='launcher');
+  document.getElementById('stage-game').classList.toggle('on', which==='game');
+  document.getElementById('swLauncher').classList.toggle('on', which==='launcher');
+  document.getElementById('swGame').classList.toggle('on', which==='game');
+  if(which==='game') go('scr-menu');
+}
+document.getElementById('swLauncher').onclick=function(){switchStage('launcher')};
+document.getElementById('swGame').onclick=function(){switchStage('game')};
+
+/* 启动器导航：月相填充指示 */
+document.querySelectorAll('.l-nav').forEach(function(nav){
+  nav.addEventListener('click',function(){
+    document.querySelectorAll('.l-nav').forEach(function(n){n.classList.remove('on')});
+    nav.classList.add('on');
+    document.getElementById('page-home').classList.toggle('on', nav.dataset.page==='home');
+    document.getElementById('page-settings').classList.toggle('on', nav.dataset.page==='settings');
+  });
+});
+
+/* 遮罩滑块 */
+var slider=document.getElementById('maskSlider');
+function setMask(v){ slider.value=v; applyMask(v); slider.style.setProperty('--fill',(v/80*100)+'%'); }
+function applyMask(v){
+  document.getElementById('maskVal').textContent=v+'%';
+  document.getElementById('gameVeil').style.opacity=(0.35+v/80*0.65);
+}
+slider.addEventListener('input',function(){setMask(+this.value)});
+applyMask(25);
+
+/* 折叠详情 */
+document.getElementById('detailToggle').addEventListener('click',function(){
+  this.classList.toggle('open');
+  document.getElementById('detailBody').classList.toggle('open');
+});
+
+/* 战役室对比 */
+function roomMode(fixed){
+  document.getElementById('roomInfo').classList.toggle('bad', !fixed);
+  document.getElementById('tgFix').classList.toggle('on', fixed);
+  document.getElementById('tgBad').classList.toggle('on', !fixed);
+}
+
+/* 昼夜切换 */
+function toggleTheme(){
+  document.body.classList.toggle('dark');
+  toast(document.body.classList.contains('dark') ? '◑ 月夜模式' : '◐ 白昼模式');
+}
+
+/* Toast */
+var toastTimer;
+function toast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(function(){t.classList.remove('show')},2200);
+}
+
+/* 鼠标视差 */
+var reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(!reduceMotion){
+  document.getElementById('stage-game').addEventListener('mousemove',function(e){
+    var x=(e.clientX/window.innerWidth-.5)*12, y=(e.clientY/window.innerHeight-.5)*8;
+    document.getElementById('gameBg').style.transform='translate('+(-x)+'px,'+(-y)+'px)';
+  });
+}
+</script>
+</body>
+</html>
