@@ -158,6 +158,25 @@ fun RWPPTheme(default: Boolean = false, content: @Composable () -> Unit) {
 }
 
 val themes = mapOf(
+    "Lunar Orbital" to darkColorScheme(
+        primary = Color(0xFF6A5FD0),          // 月紫
+        onPrimary = Color(0xFFE9EAFC),        // 银色
+        primaryContainer = Color(0xFF38317E), // 夜色靛蓝(深)
+        onPrimaryContainer = Color(0xFFE9EAFC),
+        secondary = Color(0xFFB98F3E),        // 月金
+        onSecondary = Color(0xFF1B2240),
+        secondaryContainer = Color(0xFF534AB7),
+        onSecondaryContainer = Color(0xFFE9EAFC),
+        tertiary = Color(0xFFAFA9EC),         // 月紫(浅)
+        onTertiary = Color(0xFF1B2240),
+        tertiaryContainer = Color(0xFF252C55), // 夜色靛蓝(浅)
+        onTertiaryContainer = Color(0xFFE9EAFC),
+        inversePrimary = Color(0xFF8B93B3),
+        background = Color(0xFF1B2240),       // 深空靛
+        surface = Color(0xFF252C55),
+        surfaceContainer = Color(0xFF2E3560),
+        onSurface = Color(0xFFE9EAFC),        // 银
+    ),
     "RWPP" to defaultRWPPColorScheme,
     "Material Purple" to darkColorScheme(
         background = Color(48, 40, 56), // 偏紫的深灰色

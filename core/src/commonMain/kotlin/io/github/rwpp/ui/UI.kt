@@ -59,7 +59,7 @@ import org.koin.compose.koinInject
 
 object UI : Initialization, IUserInterface {
     internal var backgroundTransparency by mutableStateOf(appKoin.get<Settings>().backgroundTransparency)
-    internal var selectedColorSchemeName by mutableStateOf(appKoin.get<Settings>().selectedTheme ?: "RWPP")
+    internal var selectedColorSchemeName by mutableStateOf(appKoin.get<Settings>().selectedTheme ?: "Lunar Orbital")
     var question by mutableStateOf<Question?>(null)
         internal set
     var warning by mutableStateOf<Warning?>(null)

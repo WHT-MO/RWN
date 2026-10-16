@@ -221,24 +221,32 @@ fun swingApplication() = SwingUtilities.invokeLater {
         } else {
             val settings = koinInject<Settings>()
             var backgroundImagePath by remember { mutableStateOf(settings.backgroundImagePath ?: "") }
-            val painter = remember(backgroundImagePath) {
+            val customPainter = remember(backgroundImagePath) {
                 if (backgroundImagePath.isNotBlank()) {
                     runCatching { ImageIO.read(File(backgroundImagePath)).toPainter() }.getOrNull()
                 } else {
                     null
                 }
             }
+            val defaultPainter = remember {
+                runCatching {
+                    ImageIO.read(
+                        ClassLoader.getSystemResourceAsStream("composeResources/io.github.rwpp.core.generated.resources/drawable/lunar_default_bg.jpg")
+                    ).toPainter()
+                }.getOrNull()
+            }
+            val painter = customPainter ?: defaultPainter
 
             Box(
                 modifier = Modifier.fillMaxSize().composed {
-                    if (backgroundImagePath.isBlank() || painter == null) {
+                    if (painter == null) {
                         background(
                             brush = Brush.verticalGradient(
                                 listOf(
                                     ColorCompose.Black,
-                                    androidx.compose.ui.graphics.Color(52, 52, 52),
-                                    androidx.compose.ui.graphics.Color(2, 48, 32),
-                                    androidx.compose.ui.graphics.Color(52, 52, 52),
+                                    androidx.compose.ui.graphics.Color(37, 44, 85),
+                                    androidx.compose.ui.graphics.Color(75, 63, 158),
+                                    androidx.compose.ui.graphics.Color(37, 44, 85),
                                     ColorCompose.Black
                                 )
                             )
@@ -250,7 +258,7 @@ fun swingApplication() = SwingUtilities.invokeLater {
                 contentAlignment = Alignment.Center
             ) {
 
-                if (backgroundImagePath.isNotBlank() && painter != null) {
+                if (painter != null) {
                     Image(
                         painter = painter,
                         null,
