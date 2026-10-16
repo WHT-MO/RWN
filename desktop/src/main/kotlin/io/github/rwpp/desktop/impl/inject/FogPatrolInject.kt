@@ -81,7 +81,11 @@ object FogPatrolInject {
             rescanTimer[this] = t
         }
 
-        // 3. 采样检测（突发期本身高频重扫，无需采样）
+        // 3. 采样检测（突发期本身高频重扫，无需采样）。
+        // 注：LOS Fog 下盟友推图会经视野共享让自己的可见格数合法暴涨，
+        // 突变检测区分度不足，仅作深度防御：突变阈值收敛为唯一强特征
+        // （可见格占全图过半，正常推进打不满），且触发后果仅是多一次
+        // 与原生等价的重扫，误报无害。
         if (age >= BURST_DURATION) {
             val s = (sampleTimer[this] ?: 0f) + delta
             if (s >= SAMPLE_PERIOD) {
@@ -118,16 +122,19 @@ object FogPatrolInject {
             // 1. 更新可见性缓存（原生：instanceof + bI() 检查）
             for (u in units) if (u.bI()) u.g(local)
 
-            // 2. 压回 + 127 记忆（本机玩家），照抄原生 rescan 压回段
+            // 2. 压回 + 127 记忆（本机玩家），照抄原生 rescan 压回段。
+            //    维度防护：玩家数组(L/M)与地图层 N 维度在换图/重连时序下
+            //    可能不一致，索引前校验列长度，越界则跳过该列的 127 写入。
             for (x in fog.indices) {
                 val col = fog[x] ?: continue
                 val exploredCol = if (isLocalTeam) mapExplored?.getOrNull(x) else null
+                val exploredSafe = isLocalTeam && exploredCol != null && exploredCol.size >= col.size
                 for (y in col.indices) {
                     if (col[y] < VISIBLE_LIMIT) {
                         col[y] = VISIBLE_LIMIT
-                        if (isLocalTeam && exploredCol != null) {
+                        if (exploredSafe) {
                             com.corrodinggames.rts.game.b.b.al.a(x, y, true)
-                            exploredCol[y] = EXPLORED_MEMORY
+                            exploredCol!![y] = EXPLORED_MEMORY
                         }
                     }
                 }
@@ -161,7 +168,12 @@ object FogPatrolInject {
         arr.filterIsInstance<com.corrodinggames.rts.game.units.am>()
     }.getOrDefault(emptyList())
 
-    /** 可见格计数突变检测（CE 全图透视的典型特征） */
+    /**
+     * 可见格计数突变检测（深度防御）。
+     * 阈值收敛为唯一强特征：可见格占全图过半——CE 全图透视必然满足，
+     * 正常玩法（自身+盟友推图）在 LOS Fog 下打不满；零可见格玩家
+     * （无单位无建筑，原版即全迷雾）被 last==0 守卫排除，不会误判。
+     */
     private fun b.visibleCountSpike(): Boolean {
         return runCatching {
             val local = game.gameRoom.localPlayer as? com.corrodinggames.rts.game.n ?: return false
@@ -180,7 +192,8 @@ object FogPatrolInject {
             lastVisible[this] = visible
             if (last == null || last == 0) return false
 
-            (visible > last * 3 && visible > total * 3 / 10) || (visible - last) > total / 10
+            // 仅保留强特征：可见格占全图过半（3/10 阈值会被盟友推图触发）
+            visible > total / 2
         }.getOrDefault(false)
     }
 
