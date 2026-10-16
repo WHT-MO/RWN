@@ -26,6 +26,8 @@ data class Settings(
     var backgroundTransparency: Float = 0.7f,
     var backgroundImageTransparency: Float = 1f,
     var showBuildingAttackRange: Boolean = false,
+    /** 迷雾巡逻：缩短游戏原生迷雾重扫间隔，CE 等内存修改的视野会在数秒内被重建覆盖 */
+    var fogPatrol: Boolean = true,
     var showExtraButton: Boolean = false,
     /** @see unitAttackRangeTypes */
     var showAttackRangeUnit: String = "Never",

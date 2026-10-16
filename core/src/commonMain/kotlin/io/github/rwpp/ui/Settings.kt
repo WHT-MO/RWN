@@ -305,6 +305,16 @@ fun SettingsView(
                                             }
                                         }
 
+                                        SettingsGroup("", "迷雾巡逻") {
+                                            SettingsSwitchComp(
+                                                "",
+                                                "迷雾巡逻反作弊",
+                                                settings.fogPatrol
+                                            ) {
+                                                settings.fogPatrol = it
+                                            }
+                                        }
+
                                         SettingsGroup("", readI18n("settings.units")) {
                                             val list = Settings.unitAttackRangeTypes
                                             var selectedIndex by remember { mutableIntStateOf(list.indexOf(settings.showAttackRangeUnit)) }
