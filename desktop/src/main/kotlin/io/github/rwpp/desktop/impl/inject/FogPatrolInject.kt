@@ -18,27 +18,24 @@ import io.github.rwpp.inject.InjectMode
 import java.util.WeakHashMap
 
 /**
- * 迷雾巡逻反作弊 v3：基线完整性巡逻 + 自研独立重扫。
+ * 迷雾巡逻反作弊 v4：基线完整性巡逻 + 自研独立重扫。
  *
- * 全链排查结论（源码+运行时双重验证）：
- * - 房间 fog 设置经网络包(GameMapData.fog 0/1/2)在加载时译码为地图实例的
+ * 全链排查结论（源码+运行时+UI 三重验证）：
+ * - 房间 fog 设置(GameMapData.fog 0/1/2)经网络包分发，加载时译码为地图实例
  *   E(迷雾总开关)/F(原生重扫允许)；G 为 revealedMap(开局全图揭示)。
- *   浓雾=1→E,F=true,false：原生 260s 重扫被 E&&F 门控**从不运行**，
- *   CE 改 N 数组（透视）或翻 E/G（判定短路）均可一整局有效。
- * - 每次对局/回放加载创建新地图实例(EngineLoad: bL = new class_484())，
- *   合法的 E/F/G 变更只发生在加载译码，无对局中途合法翻转。
+ *   UI 实锤：0=No Fog / 1=Basic Fog / 2=LOS Fog。
+ * - 社区主玩法"浓雾"= LOS Fog(fog=2, E=F=true)：原生 260s rescan 在跑并
+ *   维护 127 探索记忆；CE 改 N 数组的透视本应被周期压回——"透视持续
+ *   一整局"的剩余解释是 E/G 翻转（判定短路 + rescan 门控连坐失效）。
+ * - E/F/G 合法写入仅在加载译码；每次对局/回放加载创建新地图实例。
  *
  * 三层防御（全部本机玩家本地数据，零联机同步风险）：
- * 1. 基线巡逻：实例首个 tick 记录 E/F/G 基线（含无雾房/沙盒/revealedMap
- *    的合法 false/true 值），此后每 tick 校验，翻转立即写回——封死翻开关型。
- * 2. 自研独立重扫：本机玩家 N 数组中 <5(可见) 的格子全部压回 5，标记重绘；
- *    合法视野由引擎逐 tick 揭示在下一 tick 自动重建。复刻原生重扫的核心
- *    动作但不经过 E&&F 门控——浓雾下也运行。开局 30s 突发间隔 1.5s
- *    （CE 改视野仅开局同步生效，重进=新实例=自动再突发），随后按档位。
- * 3. 采样检测：每秒统计可见格数，突变(>3倍且>30%全图，或单秒增量>10%)
- *    立即触发独立重扫。
- *
- * 淡雾(F=true)模式不在防护范围（用户确认无人游玩），原生重扫自会运行。
+ * 1. 基线巡逻：实例首 tick 记录 E/F/G 基线（兼容无雾房/沙盒/revealedMap/
+ *    Basic Fog 的合法组合），翻转立即写回——主防线，封死开关翻转型。
+ * 2. 自研独立重扫：复刻原生 rescan 完整序列（见 resetLocalFog），不等
+ *   260s、不经门控；开局 30s 突发 1.5s（CE 改视野仅开局同步生效，
+ *   重进=新实例=自动再突发），稳态按档位（严格20s/标准65s）。
+ * 3. 采样检测：每秒可见格计数，突变立即触发重扫。
  */
 @InjectClass(b::class)
 object FogPatrolInject {
@@ -79,7 +76,7 @@ object FogPatrolInject {
         val t = (rescanTimer[this] ?: 0f) + delta
         if (t >= interval) {
             rescanTimer[this] = 0f
-            resetLocalFog()
+            resetLocalFog(this)
         } else {
             rescanTimer[this] = t
         }
@@ -89,7 +86,7 @@ object FogPatrolInject {
             val s = (sampleTimer[this] ?: 0f) + delta
             if (s >= SAMPLE_PERIOD) {
                 sampleTimer[this] = 0f
-                if (visibleCountSpike()) resetLocalFog()
+                if (visibleCountSpike()) resetLocalFog(this)
             } else {
                 sampleTimer[this] = s
             }
@@ -98,34 +95,41 @@ object FogPatrolInject {
     }
 
     /**
-     * 独立重扫：复刻原生重扫的完整动作序列（仅省略 127 探索记忆写入——浓雾下
-     * 引擎从不写 127，写了会改变浓雾观感）：
-     * 1. 对每个单位 g(本机玩家)   —— 更新单位可见性缓存（原生 rescan 前置步骤）
-     * 2. 本机玩家 N 数组可见格(<5)压回 5 —— 与原生重扫同款动作
-     * 3. 对每个存活单位 c(false)  —— 重新揭示（关键：视野揭示是事件驱动，
-     *    静止单位不会自动重新揭示，必须主动调用，否则玩家视野永久变黑）
-     * 4. 对每个活跃单位 cX()      —— 清理迷雾边缘的隐藏单位幽灵标记
+     * 独立重扫：复刻原生重扫（LOS Fog 的 260s rescan）完整动作序列，
+     * 不经 E&&F 门控、不依赖 ar：
+     * 1. 活跃单位 g(本机玩家)     —— 更新可见性缓存
+     * 2. 本机玩家 N 可见格(<5)压回 5；本机玩家(q())同时写地图层 127
+     *    （已探索记忆）+ 渲染缓存失效 al.a(x,y,true)——LOS Fog 探索
+     *    记忆观感与原生一致，不可省略
+     * 3. 存活单位 c(false) 重新揭示（事件驱动，静止单位必须主动补）
+     * 4. 活跃单位 cX() 清理迷雾边缘幽灵
      * 5. 标记重绘
-     *
-     * 单位列表：原生 rescan 用 GameObject.er(fastGameObjectList)；运行时类名被
-     * 混淆但字段/方法名保留（本项目反复验证），故沿 am 继承链反射查找字段 er，
-     * 反射调用其 a() 取数组。
+     * 单位列表：沿 am 继承链反射找字段 er(fastGameObjectList) 调 a()。
      */
-    private fun resetLocalFog() {
+    private fun resetLocalFog(map: b) {
         runCatching {
             val local = game.gameRoom.localPlayer as? com.corrodinggames.rts.game.n ?: return
             val fog = local.N ?: return
+            val mapExplored = map.N
+            val isLocalTeam = local.q()
             // 原生 rescan 仅处理 OrderableUnit（过滤树/装饰物），照抄
             val units = allUnits().filterIsInstance<com.corrodinggames.rts.game.units.y>()
 
             // 1. 更新可见性缓存（原生：instanceof + bI() 检查）
             for (u in units) if (u.bI()) u.g(local)
 
-            // 2. 压回可见格
-            for (column in fog) {
-                val col = column ?: continue
-                for (i in col.indices) {
-                    if (col[i] < VISIBLE_LIMIT) col[i] = VISIBLE_LIMIT
+            // 2. 压回 + 127 记忆（本机玩家），照抄原生 rescan 压回段
+            for (x in fog.indices) {
+                val col = fog[x] ?: continue
+                val exploredCol = if (isLocalTeam) mapExplored?.getOrNull(x) else null
+                for (y in col.indices) {
+                    if (col[y] < VISIBLE_LIMIT) {
+                        col[y] = VISIBLE_LIMIT
+                        if (isLocalTeam && exploredCol != null) {
+                            com.corrodinggames.rts.game.b.b.al.a(x, y, true)
+                            exploredCol[y] = EXPLORED_MEMORY
+                        }
+                    }
                 }
             }
 
@@ -135,6 +139,7 @@ object FogPatrolInject {
                 if (u.bI()) u.cX()
             }
 
+            // 5. 重绘（原生 rescan 有 127 写入时同样仅置 bW.O）
             GameEngine.B().bW.O = true
         }
     }
@@ -185,4 +190,6 @@ object FogPatrolInject {
     private const val STEADY_STANDARD = 65.0f
     private const val SAMPLE_PERIOD = 1.0f
     private const val VISIBLE_LIMIT = 5.toByte()
+    /** 地图已探索层标记（LOS Fog 的探索记忆） */
+    private const val EXPLORED_MEMORY = 127.toByte()
 }
