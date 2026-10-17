@@ -71,31 +71,35 @@ object UnitInject {
         if (counts.isEmpty()) return
         val lines = counts.entries.take(2).map { "${it.key}×${it.value}" }
 
-        // 画在工厂中心、竖排两行、按实测宽居中（世界-相机偏移=屏幕坐标）
+        // 画在工厂中心、竖排两行（用户需求：字号/宽度/行距全乘缩放因子 cj——
+        // bO.a 是屏幕空间渲染字号固定，不乘 cj 缩小全图时文字占比过大遮挡视野；
+        // "固定相对地图大小"=乘 cj 后随镜头缩放等比缩放）
         val unit = this as GameUnit
         val world = io.github.rwpp.appKoin.get<io.github.rwpp.game.Game>().world
+        val B = io.github.rwpp.desktop.GameEngine.B()
+        val cj = B.cj
+        val size = QUEUE_TEXT_SIZE * cj
+        queueTextPaint.c = size
         val screenX = unit.x - world.cx
         val screenY = unit.y - world.cy
         lines.forEachIndexed { i, line ->
-            val w = runCatching { queueTextPaint.a(line) }.getOrDefault(line.length * QUEUE_TEXT_SIZE)
-            io.github.rwpp.desktop.GameEngine.B().bO.a(
-                line, screenX - w / 2f, screenY + (if (i == 0) -9f else 9f), queueTextPaint
-            )
+            // 中文等宽近似：宽=字符数×字号（渲染字体为引擎位图字体，measure 不可靠）
+            val w = line.length * size
+            B.bO.a(line, screenX - w / 2f, screenY + (if (i == 0) -9f else 9f) * cj, queueTextPaint)
         }
     }
 
     /**
-     * 队列文本画笔（引擎兼容层 Paint——a(String)=measureText、b(int)=setColor、
-     * c 字段=textSize。同一实例测量+渲染，宽度天然一致）。
+     * 队列文本画笔（引擎兼容层 Paint——b(int)=setColor、c 字段=textSize）。
+     * 字号每帧按缩放因子更新。
      */
     private val queueTextPaint: android.graphics.Paint by lazy {
         android.graphics.Paint().apply {
             b(-0x2E2E2F) // ARGB(226,255,255,255) 半透明白
-            c = QUEUE_TEXT_SIZE // textSize
         }
     }
 
-    /** 渲染字号（与测量同源） */
+    /** 渲染字号（地图坐标基准） */
     private const val QUEUE_TEXT_SIZE = 12f
 
     @RedirectMethod(
