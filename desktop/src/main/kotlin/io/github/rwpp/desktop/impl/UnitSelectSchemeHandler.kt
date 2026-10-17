@@ -135,14 +135,12 @@ object UnitSelectSchemeHandler {
             val arr = listObj::class.java.getMethod("a").invoke(listObj) as? Array<*> ?: return
             val all = arr.filterIsInstance<y>()
             val mine = all.filter { it.bX === local && !it.bV }
-            // 双键匹配：ini 名（v()）为主，显示名（e()）兜底——
-            // 自定义/ini 单位的注册名带前缀（如 c_interceptor）且可能与
-            // 场上实例的类型名分叉，显示名（locale）两者恒一致
-            val matched = mine.filter {
-                val t = it.dz
-                unitTypes.contains(t.v()) || unitTypes.contains(t.e())
-            }
-            // 诊断：匹配失败时输出本机单位类型真名分布（定位命名偏差）
+            // 归一化匹配：引擎/ini 双命名体系（内置枚举 tank vs 内容单位 c_tank）
+            // 统一剥 c_ 前缀后比较——诊断日志实证场上是 c_tank、方案存 tank
+            fun norm(n: String) = n.removePrefix("c_")
+            val schemeNames = unitTypes.map { norm(it) }.toSet()
+            val matched = mine.filter { schemeNames.contains(norm(it.dz.v())) }
+            // 诊断：匹配失败时输出本机单位类型真名分布
             if (matched.isEmpty() && mine.isNotEmpty()) {
                 val dist = mine.groupingBy { it.dz.v() }.eachCount()
                 java.io.File("unit_scheme_diag.log").appendText(
