@@ -61,7 +61,7 @@ object UnitInject {
         val list = runCatching { queueObj.javaClass.getField("c").get(queueObj) as? List<*> }.getOrNull() ?: return
         if (list.isEmpty()) return
 
-        // 分组计数（条目.g=UnitType → e() 显示名），最多 3 类 + "等"
+        // 分组计数（条目.g=UnitType → e() 显示名），最多 2 类（用户需求：竖排两行）
         val counts = LinkedHashMap<String, Int>()
         for (entry in list) {
             val type = (entry as? com.corrodinggames.rts.game.units.d.j)?.g ?: continue
@@ -69,25 +69,34 @@ object UnitInject {
             counts[name] = (counts[name] ?: 0) + 1
         }
         if (counts.isEmpty()) return
-        val text = counts.entries.take(3).joinToString(" ") { "${it.key}×${it.value}" } +
-                if (counts.size > 3) " 等" else ""
+        val lines = counts.entries.take(2).map { "${it.key}×${it.value}" }
 
-        // 世界-相机偏移=屏幕坐标（视野圈同款算法），引擎画笔绘制，画建筑上方
+        // 画在工厂中心、竖排两行、按实测宽居中（世界-相机偏移=屏幕坐标）
         val unit = this as GameUnit
         val world = io.github.rwpp.appKoin.get<io.github.rwpp.game.Game>().world
-        world.drawText(
-            text,
-            unit.x - world.cx - (text.length * 5f),
-            unit.y - world.cy - 30f,
-            queuePaint
-        )
+        val screenX = unit.x - world.cx
+        val screenY = unit.y - world.cy
+        lines.forEachIndexed { i, line ->
+            val w = runCatching { queueTextPaint.a(line) }.getOrDefault(line.length * QUEUE_TEXT_SIZE)
+            io.github.rwpp.desktop.GameEngine.B().bO.a(
+                line, screenX - w / 2f, screenY + (if (i == 0) -9f else 9f), queueTextPaint
+            )
+        }
     }
 
-    /** 半透明白字（RWPP 官方画笔工厂，UnitComp 同款姿势，一次构造） */
-    private val queuePaint: io.github.rwpp.game.base.GamePaint by lazy {
-        io.github.rwpp.appKoin.get<io.github.rwpp.game.base.BaseFactory>()
-            .createPaint(226, 255, 255, 255, io.github.rwpp.game.base.GamePaint.Style.FILL)
+    /**
+     * 队列文本画笔（引擎兼容层 Paint——a(String)=measureText、b(int)=setColor、
+     * c 字段=textSize。同一实例测量+渲染，宽度天然一致）。
+     */
+    private val queueTextPaint: android.graphics.Paint by lazy {
+        android.graphics.Paint().apply {
+            b(-0x2E2E2F) // ARGB(226,255,255,255) 半透明白
+            c = QUEUE_TEXT_SIZE // textSize
+        }
     }
+
+    /** 渲染字号（与测量同源） */
+    private const val QUEUE_TEXT_SIZE = 12f
 
     @RedirectMethod(
         "a",
