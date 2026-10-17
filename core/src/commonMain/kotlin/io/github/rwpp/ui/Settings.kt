@@ -310,6 +310,14 @@ fun SettingsView(
                                             ) {
                                                 settings.showScoutVision = it
                                             }
+
+                                            SettingsSwitchComp(
+                                                "",
+                                                "工厂头顶显示生产队列（仅己方）",
+                                                settings.showFactoryQueue
+                                            ) {
+                                                settings.showFactoryQueue = it
+                                            }
                                         }
 
                                         SettingsGroup("", readI18n("settings.fogPatrol")) {

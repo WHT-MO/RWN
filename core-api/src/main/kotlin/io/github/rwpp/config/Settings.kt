@@ -46,6 +46,8 @@ data class Settings(
     var forceEnglish: Boolean = false,
     /** 单位方案选择快捷键（类型编组）：默认关闭 */
     var enableUnitSelectSchemes: Boolean = false,
+    /** 工厂头顶显示待生产队列（仅己方工厂）：默认关闭 */
+    var showFactoryQueue: Boolean = false,
     /** @see UnitSelectScheme */
     var unitSelectSchemes: List<UnitSelectScheme> = emptyList(),
 ) : Config {
