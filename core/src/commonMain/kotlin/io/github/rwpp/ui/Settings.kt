@@ -21,6 +21,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -317,6 +318,62 @@ fun SettingsView(
                                             SettingsDropDown("fogPatrol", patrolList, patrolIndex) { index, level ->
                                                 patrolIndex = index
                                                 settings.fogPatrolLevel = level
+                                            }
+                                        }
+
+                                        SettingsGroup("", "单位方案快捷键（类型编组）") {
+                                            SettingsSwitchComp(
+                                                "",
+                                                "启用单位方案快捷键",
+                                                settings.enableUnitSelectSchemes
+                                            ) {
+                                                settings.enableUnitSelectSchemes = it
+                                            }
+
+                                            // 方案列表：名称 [键位] x类型数 + 编辑/删除
+                                            var schemeEditIndex by remember { mutableStateOf<Int?>(null) }
+                                            var schemeEditVisible by remember { mutableStateOf(false) }
+
+                                            settings.unitSelectSchemes.forEachIndexed { idx, scheme ->
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text(
+                                                        "${scheme.name}  [${scheme.key}]  ${scheme.unitTypes.size}种单位",
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        modifier = Modifier.weight(1f)
+                                                    )
+                                                    RWTextButton("编辑", Modifier.padding(2.dp)) {
+                                                        schemeEditIndex = idx
+                                                        schemeEditVisible = true
+                                                    }
+                                                    RWTextButton("删除", Modifier.padding(2.dp)) {
+                                                        settings.unitSelectSchemes = settings.unitSelectSchemes.filterIndexed { i, _ -> i != idx }
+                                                    }
+                                                }
+                                            }
+
+                                            RWTextButton("+ 新建方案", Modifier.padding(top = 4.dp)) {
+                                                schemeEditIndex = null
+                                                schemeEditVisible = true
+                                            }
+
+                                            if (schemeEditVisible) {
+                                                UnitSelectSchemeDialog(
+                                                    initial = schemeEditIndex?.let { settings.unitSelectSchemes.getOrNull(it) }
+                                                ) { result ->
+                                                    schemeEditVisible = false
+                                                    if (result != null) {
+                                                        settings.unitSelectSchemes = if (schemeEditIndex == null) {
+                                                            settings.unitSelectSchemes + result
+                                                        } else {
+                                                            settings.unitSelectSchemes.mapIndexed { i, s ->
+                                                                if (i == schemeEditIndex) result else s
+                                                            }
+                                                        }
+                                                    }
+                                                }
                                             }
                                         }
 

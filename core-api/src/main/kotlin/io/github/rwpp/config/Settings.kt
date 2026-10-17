@@ -44,9 +44,27 @@ data class Settings(
     var boldText: Boolean = false,
     var renderingBackend: String = "Default", // Default, Software, OpenGL
     var forceEnglish: Boolean = false,
+    /** 单位方案选择快捷键（类型编组）：默认关闭 */
+    var enableUnitSelectSchemes: Boolean = false,
+    /** @see UnitSelectScheme */
+    var unitSelectSchemes: List<UnitSelectScheme> = emptyList(),
 ) : Config {
     companion object {
         val unitAttackRangeTypes = listOf("Never", "Land", "Air", "All")
         val fogPatrolLevels = listOf("标准", "严格")
     }
 }
+
+/**
+ * 单位方案：按单位类型集合绑快捷键，按键时实时选中本机玩家场上
+ * 所有匹配类型的存活单位（含工厂新产出——按键时现查，非快照）。
+ * 与原生 Ctrl+数字编组零接触（不碰引擎编组数组，只改当前选择）。
+ */
+@Serializable
+data class UnitSelectScheme(
+    var name: String,
+    /** 键位（如 "Q"、"F5"——AWT KeyEvent 键名） */
+    var key: String,
+    /** 单位类型 ini 名集合 */
+    var unitTypes: List<String> = emptyList(),
+)

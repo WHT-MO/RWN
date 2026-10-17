@@ -456,6 +456,9 @@ fun swingApplication() = SwingUtilities.invokeLater {
     mainJFrame = window
     canvas.createBufferStrategy(2)
 
+    // 单位方案快捷键（类型编组）：全局键盘分发器，默认随设置开关生效
+    io.github.rwpp.desktop.impl.UnitSelectSchemeHandler.install()
+
     window.addComponentListener(object : ComponentAdapter() {
         override fun componentResized(e: ComponentEvent) {
             val scale = getDPIScale()
