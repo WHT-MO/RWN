@@ -68,9 +68,18 @@ object RoomPresets {
         }
         // 每玩家只保留首条规则（重复规则以第一条为准）
         val byPlayer = moves.associateBy { it.player }
-        val occupied = HashMap<Int, io.github.rwpp.game.Player>() // spawn -> player（当前态，初始为实况）
+
+        // 模拟态：每个玩家的当前位置（初始=引擎实况）。
+        // 关键：交换中"原位置"必须取模拟位置——引擎实时值在前序规则把玩家
+        // 挤走后已过时，用它会导致占位表覆盖错乱、两名玩家下发同一位
+        // （引擎丢弃冲突指令，表现为"不动/错乱"）。
+        val simSpawn = HashMap<io.github.rwpp.game.Player, Int>()
+        val occupied = HashMap<Int, io.github.rwpp.game.Player>() // spawn -> player（模拟态）
         players.forEach { p ->
-            if (p.spawnPoint in 0..9) occupied[p.spawnPoint] = p
+            if (p.spawnPoint in 0..9) {
+                simSpawn[p] = p.spawnPoint
+                occupied[p.spawnPoint] = p
+            }
         }
         val finalSpawn = HashMap<io.github.rwpp.game.Player, Int>()
         val finalTeam = HashMap<io.github.rwpp.game.Player, Int>()
@@ -80,20 +89,22 @@ object RoomPresets {
                 finalTeam[m.player] = m.team
                 continue
             }
+            val oldSpawn = simSpawn[m.player] ?: continue
             val occupant = occupied[m.spawn]
-            val oldSpawn = m.player.spawnPoint
             if (occupant == null || occupant == m.player) {
                 // 空位或原地：直接移
                 occupied.remove(oldSpawn)
                 occupied[m.spawn] = m.player
-                finalSpawn[m.player] = m.spawn
             } else {
-                // 交换：占用者移到被移动者的原位置（若其原位无效则留给后续空位逻辑）
+                // 交换：占用者移到被移动者的模拟原位（同步更新其模拟位置，
+                // 供其自身后续规则正确取"原位置"）
                 occupied[oldSpawn] = occupant
                 occupied[m.spawn] = m.player
-                finalSpawn[m.player] = m.spawn
-                if (oldSpawn in 0..9) finalSpawn[occupant] = oldSpawn
+                simSpawn[occupant] = oldSpawn
+                if (finalSpawn[occupant] == null) finalSpawn[occupant] = oldSpawn
             }
+            simSpawn[m.player] = m.spawn
+            finalSpawn[m.player] = m.spawn
             finalTeam[m.player] = m.team
         }
         return players.mapNotNull { p ->

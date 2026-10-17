@@ -48,7 +48,12 @@ fun RoomPresetNameDialog(
                 Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
                     Text(if (initialName != null) "编辑预设" else "保存为预设", style = MaterialTheme.typography.titleLarge)
                     Text(
-                        "规则：移动序号x玩家到序号x位置、x队伍（序号=玩家当前所在出生点位1-10，与队伍无关；位置留空只换队伍；目标位被占时自动交换）",
+                        "预设 = 房间设置（雾/资金/AI难度/速度等面板当前值）+ 移动规则",
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    Text(
+                        "移动规则：移动序号x玩家到序号x位置、x队伍（序号=玩家当前所在出生点位1-10，与队伍无关；位置留空只换队伍；目标位被占时自动交换）",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                         modifier = Modifier.padding(top = 2.dp, bottom = 8.dp)
