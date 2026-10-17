@@ -49,11 +49,13 @@ object MatchStatistics {
         }
     }
 
-    /** GameOverEvent 订阅入口（仅多人对局） */
+    /** GameOverEvent 订阅入口（仅多人对局，且本机玩家实际参战） */
     fun onGameOver(e: GameOverEvent) {
         runCatching {
             val room = appKoin.get<Game>().gameRoom
             if (room.isSinglePlayerGame) return
+            // 观战者不记：观战局非"我的对局"，且 team=-3 永远判败会污染胜率
+            if (room.localPlayer.isSpectator) return
             append(
                 MatchRecord(
                     timestamp = System.currentTimeMillis(),
