@@ -42,6 +42,7 @@ gradlew :desktop:packageReleaseUberJarForCurrentOS   rem 产出可运行 fat jar
 
 ## 文档
 
+- [功能说明](docs/功能说明.md)
 - [架构说明](docs/ARCHITECTURE.md)
 - [Phase 0 预研结论（游戏字段定位索引）](docs/PHASE0-结论.md)
 - [UI 原型（月轨 Lunar Orbital）](docs/ui-prototype-v4.html)
