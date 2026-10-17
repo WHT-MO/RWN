@@ -1023,6 +1023,12 @@ private fun MultiplayerOption(
     var startingUnits by remember { mutableStateOf(room.startingUnits) }
     var teamMode by remember { mutableStateOf(room.teamMode) }
     var pendingTeamChanges by remember { mutableStateOf(emptyList<RoomPresets.Preset.TeamChange>()) }
+    // 槽位锚定基准：按出生点排序的玩家列表（队伍变更不会重排，
+    // 修复"二次应用错位/互换死循环"——此前用按队伍排序的列表）
+    val slotPlayers = remember(update) {
+        players.filter { !it.isSpectator }.sortedBy { it.spawnPoint }
+    }
+    var editingPresetName by remember { mutableStateOf<String?>(null) }
     var startingCredits by remember { mutableStateOf(room.startingCredits) }
     var maxPlayerCount by remember { mutableStateOf(room.maxPlayerCount) }
     var realIncomeMultiplier by remember { mutableStateOf(room.incomeMultiplier) }
@@ -1332,6 +1338,7 @@ private fun MultiplayerOption(
             // 预设区：仅房主可见（选择填入/保存当前/删除），两段式——填入后仍需点"应用"生效
             if (room.isHost || room.isHostServer) {
                 var presetIndex by remember { mutableStateOf(-1) }
+                var showEditDialog by remember { mutableStateOf(false) }
                 val presetList = remember { RoomPresets.presets }
 
                 LargeDropdownMenu(
@@ -1364,13 +1371,15 @@ private fun MultiplayerOption(
                 RWTextButton("保存为预设", Modifier.padding(5.dp)) { showSaveDialog = true }
                 if (showSaveDialog) {
                     RoomPresetNameDialog(
-                        initialTeamChanges = players.mapIndexed { slot, pl ->
+                        initialTeamChanges = slotPlayers.mapIndexed { slot, pl ->
                             RoomPresets.Preset.TeamChange(slot, pl.spawnPoint, pl.team)
-                        }
+                        },
+                        initialName = editingPresetName
                     ) { result ->
                         showSaveDialog = false
                         if (result != null) {
                             val (name, teamChanges) = result
+                            editingPresetName = null
                             RoomPresets.save(
                                 RoomPresets.Preset(
                                     name = name,
@@ -1392,9 +1401,58 @@ private fun MultiplayerOption(
                 }
 
                 if (presetIndex in presetList.indices) {
+                    RWTextButton("编辑预设", Modifier.padding(5.dp)) {
+                        editingPresetName = presetList[presetIndex].name
+                        // 预填该预设的规则到编辑对话框
+                        presetList[presetIndex].let { p ->
+                            sharedControl = p.sharedControl
+                            startingCredits = p.startingCredits
+                            startingUnits = p.startingUnits
+                            fogMode = FogMode.entries[p.fogMode]
+                            aiDifficulty = p.aiDifficulty
+                            realIncomeMultiplier = p.incomeMultiplier
+                            noNukes = p.noNukes
+                            allowSpectators = p.allowSpectators
+                            gameSpeed = p.gameSpeed
+                            pendingTeamChanges = p.teamChanges
+                        }
+                        showEditDialog = true
+                    }
                     RWTextButton("删除预设", Modifier.padding(5.dp)) {
                         RoomPresets.delete(presetList[presetIndex].name)
                         presetIndex = -1
+                    }
+                }
+                if (showEditDialog) {
+                    RoomPresetNameDialog(
+                        initialTeamChanges = pendingTeamChanges,
+                        initialName = editingPresetName
+                    ) { result ->
+                        showEditDialog = false
+                        if (result != null) {
+                            val (name, teamChanges) = result
+                            // 同名覆盖（编辑的是原预设名），换名则另存
+                            if (editingPresetName != null && editingPresetName != name) {
+                                RoomPresets.delete(editingPresetName!!)
+                            }
+                            editingPresetName = null
+                            RoomPresets.save(
+                                RoomPresets.Preset(
+                                    name = name,
+                                    sharedControl = sharedControl,
+                                    startingCredits = startingCredits,
+                                    startingUnits = startingUnits,
+                                    fogMode = fogMode.ordinal,
+                                    aiDifficulty = aiDifficulty,
+                                    incomeMultiplier = realIncomeMultiplier,
+                                    noNukes = noNukes,
+                                    allowSpectators = allowSpectators,
+                                    gameSpeed = gameSpeed,
+                                    teamChanges = teamChanges,
+                                    createdAt = System.currentTimeMillis(),
+                                )
+                            )
+                        }
                     }
                 }
             }
@@ -1419,7 +1477,7 @@ private fun MultiplayerOption(
                 // 移动预设：解析为玩家快照+交换算法，复用房主移动玩家指令
                 // （spawnPoint+team 一次下发，同步由引擎保障）
                 if (pendingTeamChanges.isNotEmpty()) {
-                    RoomPresets.resolveMoves(players, pendingTeamChanges).forEach { (player, move) ->
+                    RoomPresets.resolveMoves(slotPlayers, pendingTeamChanges).forEach { (player, move) ->
                         val (spawn, team) = move
                         player.applyConfigChange(spawnPoint = spawn, team = team)
                     }

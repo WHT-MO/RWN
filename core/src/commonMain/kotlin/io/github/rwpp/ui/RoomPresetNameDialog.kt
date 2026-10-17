@@ -35,9 +35,10 @@ import io.github.rwpp.widget.RWTextButton
 @Composable
 fun RoomPresetNameDialog(
     initialTeamChanges: List<RoomPresets.Preset.TeamChange>,
+    initialName: String? = null,
     onResult: (Pair<String, List<RoomPresets.Preset.TeamChange>>?) -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
+    var name by remember(initialName) { mutableStateOf(initialName ?: "") }
     var rules by remember { mutableStateOf(initialTeamChanges) }
 
     AnimatedAlertDialog(true, onDismissRequest = { onResult(null) }) { dismiss ->
@@ -45,9 +46,9 @@ fun RoomPresetNameDialog(
             Box {
                 ExitButton { dismiss(); onResult(null) }
                 Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
-                    Text("保存为预设", style = MaterialTheme.typography.titleLarge)
+                    Text(if (initialName != null) "编辑预设" else "保存为预设", style = MaterialTheme.typography.titleLarge)
                     Text(
-                        "规则：移动序号x玩家到序号x位置、x队伍（序号按玩家列表从1计；位置1-10对应出生点，留空只换队伍；目标位被占时自动交换）",
+                        "规则：移动序号x玩家到序号x位置、x队伍（序号=玩家当前所在出生点位1-10，与队伍无关；位置留空只换队伍；目标位被占时自动交换）",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                         modifier = Modifier.padding(top = 2.dp, bottom = 8.dp)
