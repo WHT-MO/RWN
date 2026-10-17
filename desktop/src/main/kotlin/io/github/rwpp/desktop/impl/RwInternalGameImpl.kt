@@ -25,8 +25,10 @@ class RwInternalGameImpl(str: String) : u(str) {
     // 引擎键盘入口：单位方案快捷键（类型编组）在此通道触发——
     // AWT 三通道（Toolkit/Dispatcher/Canvas）实测在对局中收不到字母键事件，
     // 引擎走 Slick 输入管道，此处是所有按键的必经之路（原生编队同源）。
+    // 方案命中时跳过 super（不传引擎）：数字键的原生"编组N选中"会紧跟
+    // 我们的选中清空选择（选中后秒变空选的根因）。
     override fun keyPressed(p0: Int, p1: Char) {
-        super.keyPressed(p0, p1)
-        runCatching { UnitSelectSchemeHandler.onEngineKey(p0, p1) }
+        val handled = runCatching { UnitSelectSchemeHandler.onEngineKey(p0, p1) }.getOrDefault(false)
+        if (!handled) super.keyPressed(p0, p1)
     }
 }

@@ -83,34 +83,37 @@ object UnitSelectSchemeHandler {
     /**
      * 引擎键盘入口（终极通道）：RwInternalGameImpl.keyPressed 直通——
      * 引擎自身处理所有按键的必经之路（原生编队走的就是它），对局中必然活着。
+     * 返回 true = 已被方案消费（RwInternalGameImpl 将跳过 super，不再传引擎
+     * ——数字键场景必需：原生"编组N选中"会紧跟我们的选中清空选择，打架）
      * @param slickCode org.newdawn.slick.Input 键码
      */
-    fun onEngineKey(slickCode: Int, keyChar: Char) {
+    fun onEngineKey(slickCode: Int, keyChar: Char): Boolean {
         val keyName = when {
             keyChar.isLetterOrDigit() -> keyChar.uppercase()
             slickCode in org.newdawn.slick.Input.KEY_F1..org.newdawn.slick.Input.KEY_F12 ->
                 "F${slickCode - org.newdawn.slick.Input.KEY_F1 + 1}"
-            else -> return
+            else -> return false
         }
-        matchAndSelect(keyName)
+        return matchAndSelect(keyName)
     }
 
-    /** 键名 → 方案匹配 → 选中（全通道共用） */
-    private fun matchAndSelect(keyName: String) {
-        val settings = runCatching { appKoin.get<Settings>() }.getOrNull() ?: return
-        if (!settings.enableUnitSelectSchemes) return
+    /** 键名 → 方案匹配 → 选中（全通道共用）；返回 true=方案命中并已选中 */
+    private fun matchAndSelect(keyName: String): Boolean {
+        val settings = runCatching { appKoin.get<Settings>() }.getOrNull() ?: return false
+        if (!settings.enableUnitSelectSchemes) return false
         // 聊天/输入弹窗打开时跳过
-        if (io.github.rwpp.desktop.sendMessageDialog.isVisible) return
+        if (io.github.rwpp.desktop.sendMessageDialog.isVisible) return false
         // 引擎菜单/弹窗打开时跳过（对齐原生编队：ac=弹窗非空 或 T=输入锁定）
         runCatching {
             val bS = GameEngine.B().bS
-            if (bS.ac != null) return
-            if (engineInputLockedField?.getBoolean(bS) == true) return
+            if (bS.ac != null) return false
+            if (engineInputLockedField?.getBoolean(bS) == true) return false
         }
 
         val scheme = settings.unitSelectSchemes.firstOrNull { it.key.equals(keyName, ignoreCase = true) }
-            ?: return
+            ?: return false
         runCatching { selectSchemeUnits(scheme.unitTypes) }
+        return true
     }
 
     /** AWT KeyEvent → 方案键名（与设置页展示一致：单字符大写 / F1-F12 / 数字） */
