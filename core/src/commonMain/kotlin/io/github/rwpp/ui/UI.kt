@@ -54,8 +54,9 @@ import io.github.rwpp.ui.UI.showQuestion
 import io.github.rwpp.ui.UI.showWarning
 import io.github.rwpp.ui.color.getTeamColor
 import io.github.rwpp.widget.LunarMenuItem
-import io.github.rwpp.widget.MenuButton
-import io.github.rwpp.widget.lazyRowDesktopScrollable
+import io.github.rwpp.widget.JostFonts
+import io.github.rwpp.widget.LunarGroupTitle
+import io.github.rwpp.widget.LunarMenuItem
 import io.github.rwpp.widget.v2.RWIconButton
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
@@ -176,46 +177,50 @@ open class UIProvider {
         resourceBrowser: () -> Unit
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // 左侧竖排主菜单（月光面板），背景人物完整可见
+            // 左侧竖排主菜单（月光列表），背景人物完整可见
             Column(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
                     .fillMaxHeight()
-                    .width(300.dp)
+                    .width(340.dp)
                     .padding(start = 40.dp),
                 verticalArrangement = Arrangement.Center
             ) {
-                // 标题：月光渐变 + 字距 + 版本
+                // 标题：Jost 细体 + 字距（优雅月光感，弃用硬核方块字）
                 Text(
-                    "RWNoctiluna",
+                    "RWNOCTILUNA",
                     style = TextStyle(
-                        fontFamily = MaterialTheme.typography.displayLarge.fontFamily,
+                        fontFamily = JostFonts(),
+                        fontWeight = FontWeight.Light,
                         brush = Brush.linearGradient(
-                            listOf(Color(0xFFF5F3FF), Color(0xFFC7BFE8), Color(0xFF9D94D6))
+                            listOf(Color(0xFFF5F3FF), Color(0xFFC7BFE8))
                         ),
-                        fontSize = 44.sp,
-                        letterSpacing = 2.sp
+                        fontSize = 34.sp,
+                        letterSpacing = 6.sp
                     )
                 )
                 Text(
                     "$projectVersion (core $coreVersion)",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFFE8E4F5),
-                    modifier = Modifier.padding(top = 2.dp, bottom = 18.dp, start = 4.dp)
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(top = 2.dp, bottom = 20.dp, start = 4.dp)
                 )
 
-                LunarMenuItem(readI18n("menu.mission"), painterResource(Res.drawable.destruction_30), onClick = mission)
-                LunarMenuItem(readI18n("menus.singlePlayer.skirmish", I18nType.RW), painterResource(Res.drawable.swords_30), onClick = skirmish)
-                LunarMenuItem(readI18n("menu.multiplayer"), painterResource(Res.drawable.group_30), onClick = multiplayer)
-                LunarMenuItem(readI18n("menu.mods"), painterResource(Res.drawable.dns_30), onClick = mods)
-                LunarMenuItem(readI18n("menu.sandbox"), painterResource(Res.drawable.edit_square_30), onClick = sandbox)
-                LunarMenuItem(readI18n("menu.settings"), Icons.Default.Settings, onClick = settings)
-                LunarMenuItem(readI18n("browser.resourceBrowser"), painterResource(Res.drawable.public_30), onClick = resourceBrowser)
-                LunarMenuItem(readI18n("menu.extension"), painterResource(Res.drawable.extension_30), onClick = extension)
-                LunarMenuItem(readI18n("menu.replay"), Icons.Default.PlayArrow, onClick = replay)
+                LunarGroupTitle("开始游戏")
+                LunarMenuItem("01", readI18n("menu.mission"), painterResource(Res.drawable.destruction_30), onClick = mission)
+                LunarMenuItem("02", readI18n("menus.singlePlayer.skirmish", I18nType.RW), painterResource(Res.drawable.swords_30), onClick = skirmish)
+                LunarMenuItem("03", readI18n("menu.multiplayer"), painterResource(Res.drawable.group_30), onClick = multiplayer)
 
-                extraMenuList.forEach {
-                    LunarMenuItem(it.title, it.iconModel, onClick = it.onClick)
+                LunarGroupTitle("客户端增强")
+                LunarMenuItem("04", readI18n("menu.mods"), painterResource(Res.drawable.dns_30), onClick = mods)
+                LunarMenuItem("05", readI18n("menu.sandbox"), painterResource(Res.drawable.edit_square_30), onClick = sandbox)
+                LunarMenuItem("06", readI18n("browser.resourceBrowser"), painterResource(Res.drawable.public_30), onClick = resourceBrowser)
+                LunarMenuItem("07", readI18n("menu.extension"), painterResource(Res.drawable.extension_30), onClick = extension)
+                LunarMenuItem("08", readI18n("menu.replay"), Icons.Default.PlayArrow, onClick = replay)
+                LunarMenuItem("09", readI18n("menu.settings"), Icons.Default.Settings, onClick = settings)
+
+                extraMenuList.forEachIndexed { index, it ->
+                    LunarMenuItem((10 + index).toString(), it.title, it.iconModel, onClick = it.onClick)
                 }
             }
         }

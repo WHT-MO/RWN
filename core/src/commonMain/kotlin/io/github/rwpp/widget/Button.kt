@@ -7,6 +7,8 @@
 
 package io.github.rwpp.widget
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,6 +29,7 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun MenuButton(
@@ -66,25 +69,21 @@ fun MenuButton(
 }
 
 /**
- * 月光菜单项：主菜单竖排列表用。半透明白（月光感），hover 提亮，
- * 左侧图标 + 文字横排，宽度撑满父容器。
+ * 月光菜单项：参照浅色优雅列表样式——月牙图标 + 编号 + 标题 + 底部细分隔线，
+ * 无卡片框；配色全部跟随主题（深色主题下为深色半透明，浅色下为浅色）。
+ * hover 时整行轻微提亮。
  */
 @Composable
 fun LunarMenuItem(
+    number: String,
     content: String,
     icon: Any? = null,
     onClick: () -> Unit
 ) {
     var hovered by remember { mutableStateOf(false) }
-    Surface(
-        color = if (hovered) Color(0xE6FFFFFF) else Color(0xB3FFFFFF),
-        contentColor = Color(0xFF2B2E4A),
-        shape = RoundedCornerShape(12.dp),
-        shadowElevation = 3.dp,
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(52.dp)
-            .padding(horizontal = 14.dp, vertical = 4.dp)
             .pointerInput(Unit) {
                 awaitPointerEventScope {
                     while (true) {
@@ -92,25 +91,48 @@ fun LunarMenuItem(
                         hovered = event.type == PointerEventType.Enter
                     }
                 }
-            },
-        onClick = onClick
+            }
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             if (icon is Painter)
-                Icon(icon, null, tint = Color(0xFF6A5FD0), modifier = Modifier.size(24.dp))
+                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
             else if (icon is ImageVector)
-                Icon(icon, null, tint = Color(0xFF6A5FD0), modifier = Modifier.size(24.dp))
-            Spacer(Modifier.width(12.dp))
+                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(16.dp))
+            Text(
+                number,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f),
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.width(28.dp)
+            )
             Text(
                 content,
-                color = Color(0xFF2B2E4A),
-                style = MaterialTheme.typography.titleMedium
+                color = MaterialTheme.colorScheme.onBackground,
+                style = MaterialTheme.typography.titleLarge
             )
         }
+        Spacer(Modifier.height(12.dp))
+        // 底部细分隔线
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+        )
     }
+}
+
+/** 菜单分组标题：小号字距拉开（如"开始游戏"/"客户端增强"） */
+@Composable
+fun LunarGroupTitle(title: String) {
+    Text(
+        title,
+        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+        style = MaterialTheme.typography.labelLarge.copy(letterSpacing = 6.sp),
+        modifier = Modifier.padding(start = 14.dp, top = 18.dp, bottom = 6.dp)
+    )
 }
 
 @Composable
