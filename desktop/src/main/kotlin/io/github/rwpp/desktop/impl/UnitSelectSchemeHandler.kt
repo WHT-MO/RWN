@@ -27,9 +27,6 @@ import javax.swing.SwingUtilities
  */
 object UnitSelectSchemeHandler {
 
-    /** 诊断日志（已退役）：功能验证完成，置空避免按键级同步写盘 */
-    private fun diag(msg: String) {}
-
     @Volatile
     private var installed = false
     /** 引擎输入锁定标志（bS 实例的 "T" 字段，混淆名直接从实例反射，不依赖类名） */
@@ -59,7 +56,6 @@ object UnitSelectSchemeHandler {
         // 3. gameCanvas KeyListener——组件级直挂
         java.awt.Toolkit.getDefaultToolkit().addAWTEventListener({ awtEvent ->
             if (awtEvent is KeyEvent && awtEvent.id == KeyEvent.KEY_PRESSED) {
-                diag("queue key: ${keyNameOf(awtEvent)}")
                 dispatcher.dispatchKeyEvent(awtEvent)
             }
         }, java.awt.AWTEvent.KEY_EVENT_MASK)
@@ -144,13 +140,6 @@ object UnitSelectSchemeHandler {
             fun norm(n: String) = n.removePrefix("c_")
             val schemeNames = unitTypes.map { norm(it) }.toSet()
             val matched = mine.filter { schemeNames.contains(norm(it.dz.v())) }
-            // 诊断：匹配失败时输出本机单位类型真名分布
-            if (matched.isEmpty() && mine.isNotEmpty()) {
-                val dist = mine.groupingBy { it.dz.v() }.eachCount()
-                java.io.File("unit_scheme_diag.log").appendText(
-                    "[diag] mine=${mine.size} types=$dist scheme=$unitTypes\n"
-                )
-            }
             if (matched.isEmpty()) return
 
             val bS = GameEngine.B().bS
