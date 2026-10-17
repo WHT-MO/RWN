@@ -1359,9 +1359,14 @@ private fun MultiplayerOption(
                 var showSaveDialog by remember { mutableStateOf(false) }
                 RWTextButton("保存为预设", Modifier.padding(5.dp)) { showSaveDialog = true }
                 if (showSaveDialog) {
-                    RoomPresetNameDialog { name ->
+                    RoomPresetNameDialog(
+                        initialTeamChanges = players.mapIndexed { slot, pl ->
+                            RoomPresets.Preset.TeamChange(slot, pl.team)
+                        }
+                    ) { result ->
                         showSaveDialog = false
-                        if (name != null) {
+                        if (result != null) {
+                            val (name, teamChanges) = result
                             RoomPresets.save(
                                 RoomPresets.Preset(
                                     name = name,
@@ -1374,9 +1379,7 @@ private fun MultiplayerOption(
                                     noNukes = noNukes,
                                     allowSpectators = allowSpectators,
                                     gameSpeed = gameSpeed,
-                                    teamChanges = players.mapIndexed { slot, pl ->
-                                        RoomPresets.Preset.TeamChange(slot, pl.team)
-                                    },
+                                    teamChanges = teamChanges,
                                 )
                             )
                         }
