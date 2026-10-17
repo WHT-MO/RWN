@@ -138,12 +138,10 @@ object UnitSelectSchemeHandler {
             val arr = listObj::class.java.getMethod("a").invoke(listObj) as? Array<*> ?: return
             val all = arr.filterIsInstance<y>()
             val mine = all.filter { it.bX === local && !it.bV }
-            // 归一化匹配：引擎/ini 双命名体系（内置枚举 tank vs 内容单位 c_tank，
-            // 前缀家族不止 c_——统一剥任意"单字母_"前缀族 tank↔c_tank/d_tank…互通）
-            fun norm(n: String): String {
-                val m = Regex("^[a-z]_(.+)$").find(n) ?: return n
-                return m.groupValues[1]
-            }
+            // 归一化匹配：引擎/ini 双命名体系（内置枚举 tank vs 内容单位 c_tank）。
+            // 前缀经全量 ini 池实证仅 c_ 一族（用户遍历安卓包确认），用精确
+            // removePrefix 而非正则——每按键每单位执行一次，引擎线程能省则省。
+            fun norm(n: String) = n.removePrefix("c_")
             val schemeNames = unitTypes.map { norm(it) }.toSet()
             val matched = mine.filter { schemeNames.contains(norm(it.dz.v())) }
             // 诊断：匹配失败时输出本机单位类型真名分布
