@@ -1371,8 +1371,9 @@ private fun MultiplayerOption(
                 RWTextButton("保存为预设", Modifier.padding(5.dp)) { showSaveDialog = true }
                 if (showSaveDialog) {
                     RoomPresetNameDialog(
-                        initialTeamChanges = slotPlayers.mapIndexed { slot, pl ->
-                            RoomPresets.Preset.TeamChange(slot, pl.spawnPoint, pl.team)
+                        // 序号=玩家当前出生点位（与规则锚定语义一致；空位不参与编号）
+                        initialTeamChanges = slotPlayers.map { pl ->
+                            RoomPresets.Preset.TeamChange(pl.spawnPoint, pl.spawnPoint, pl.team)
                         },
                         initialName = editingPresetName
                     ) { result ->

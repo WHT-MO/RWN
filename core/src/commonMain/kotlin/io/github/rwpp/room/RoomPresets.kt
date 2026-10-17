@@ -49,20 +49,22 @@ object RoomPresets {
     }
 
     /**
-     * 把规则解析为"玩家身份快照 + 最终位置/队伍"，解决多步交换的序号漂移：
-     * 应用瞬间一次性解析（players 为当前房间玩家列表），之后交换基于
-     * Player 引用，不受列表刷新影响。
-     * 算法：串行处理，目标位被占则与占用者交换位置；占用者队伍由其自身
-     * 规则决定（无规则则保持）；未出现在规则中的玩家若被挤出位置则移入空位。
+     * 把规则解析为"玩家身份快照 + 最终位置/队伍"。
+     * 序号语义 = 出生点位（0基）：规则 slot x 锚定"应用时刻占据出生点 x 的玩家"
+     * ——直接按 spawnPoint 查找，与玩家列表排序/空位无关（空位只导致该规则
+     * 无锚点而跳过，不会错位到别的玩家）。
+     * 算法：串行处理，目标位被占则与占用者交换位置（交换基于模拟位置，
+     * 防占位表错乱/冲突下发）；占用者队伍由其自身规则决定，无规则保持。
      */
     fun resolveMoves(
         players: List<io.github.rwpp.game.Player>,
         rules: List<Preset.TeamChange>,
     ): List<Pair<io.github.rwpp.game.Player, Pair<Int, Int>>> {
-        // 快照：每条规则锚定应用时刻的玩家（防前序交换污染序号）
+        // 快照：每条规则按出生点位锚定应用时刻的玩家（防前序交换污染序号）
         data class Move(val player: io.github.rwpp.game.Player, val spawn: Int, val team: Int)
+        val bySpawn = players.filter { it.spawnPoint in 0..9 }.associateBy { it.spawnPoint }
         val moves = rules.mapNotNull { r ->
-            val p = players.getOrNull(r.slot) ?: return@mapNotNull null
+            val p = bySpawn[r.slot] ?: return@mapNotNull null
             if (r.targetSpawn < -1) return@mapNotNull null
             Move(p, r.targetSpawn, r.targetTeam.coerceAtLeast(1))
         }
