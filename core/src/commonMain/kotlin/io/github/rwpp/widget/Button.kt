@@ -14,10 +14,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
@@ -53,6 +60,54 @@ fun MenuButton(
                 color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.padding(5.dp)
+            )
+        }
+    }
+}
+
+/**
+ * 月光菜单项：主菜单竖排列表用。半透明白（月光感），hover 提亮，
+ * 左侧图标 + 文字横排，宽度撑满父容器。
+ */
+@Composable
+fun LunarMenuItem(
+    content: String,
+    icon: Any? = null,
+    onClick: () -> Unit
+) {
+    var hovered by remember { mutableStateOf(false) }
+    Surface(
+        color = if (hovered) Color(0xE6FFFFFF) else Color(0xB3FFFFFF),
+        contentColor = Color(0xFF2B2E4A),
+        shape = RoundedCornerShape(12.dp),
+        shadowElevation = 3.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(52.dp)
+            .padding(horizontal = 14.dp, vertical = 4.dp)
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        hovered = event.type == PointerEventType.Enter
+                    }
+                }
+            },
+        onClick = onClick
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (icon is Painter)
+                Icon(icon, null, tint = Color(0xFF6A5FD0), modifier = Modifier.size(24.dp))
+            else if (icon is ImageVector)
+                Icon(icon, null, tint = Color(0xFF6A5FD0), modifier = Modifier.size(24.dp))
+            Spacer(Modifier.width(12.dp))
+            Text(
+                content,
+                color = Color(0xFF2B2E4A),
+                style = MaterialTheme.typography.titleMedium
             )
         }
     }

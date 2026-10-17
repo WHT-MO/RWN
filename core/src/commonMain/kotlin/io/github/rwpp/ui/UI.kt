@@ -53,6 +53,7 @@ import io.github.rwpp.core.generated.resources.*
 import io.github.rwpp.ui.UI.showQuestion
 import io.github.rwpp.ui.UI.showWarning
 import io.github.rwpp.ui.color.getTeamColor
+import io.github.rwpp.widget.LunarMenuItem
 import io.github.rwpp.widget.MenuButton
 import io.github.rwpp.widget.lazyRowDesktopScrollable
 import io.github.rwpp.widget.v2.RWIconButton
@@ -174,127 +175,49 @@ open class UIProvider {
         replay: () -> Unit,
         resourceBrowser: () -> Unit
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-
-            // 顶部空隙权重放大：内容整体沉向窗口下方，露出背景人物
-            Spacer(modifier = Modifier.weight(4.2f))
-
-            Text(
-                "RWNoctiluna",
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-                style = TextStyle(
-                    fontFamily = MaterialTheme.typography.displayLarge.fontFamily,
-                    brush = Brush.linearGradient(listOf(MaterialTheme.colorScheme.secondary, MaterialTheme.colorScheme.primary)),
-                    fontSize = 64.sp
-                )
-            )
-
-            Text(
-                "$projectVersion (core $coreVersion)",
-                modifier = Modifier.padding(top = 1.dp, bottom = 5.dp).align(Alignment.CenterHorizontally),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background.copy((UI.backgroundTransparency + 0.1f).coerceAtMost(1f))),
-                border = BorderStroke(4.dp, MaterialTheme.colorScheme.surfaceContainer),
-                shape = RectangleShape
+        Box(modifier = Modifier.fillMaxSize()) {
+            // 左侧竖排主菜单（月光面板），背景人物完整可见
+            Column(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .fillMaxHeight()
+                    .width(300.dp)
+                    .padding(start = 40.dp),
+                verticalArrangement = Arrangement.Center
             ) {
-                LazyRow(
-                    state = state,
-                    modifier = Modifier.fillMaxWidth().lazyRowDesktopScrollable(state),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    item {
-                        MenuButton(
-                            readI18n("menu.mission"),
-                            painterResource(Res.drawable.destruction_30),
-                            onClick = mission
-                        )
-                    }
+                // 标题：月光渐变 + 字距 + 版本
+                Text(
+                    "RWNoctiluna",
+                    style = TextStyle(
+                        fontFamily = MaterialTheme.typography.displayLarge.fontFamily,
+                        brush = Brush.linearGradient(
+                            listOf(Color(0xFFF5F3FF), Color(0xFFC7BFE8), Color(0xFF9D94D6))
+                        ),
+                        fontSize = 44.sp,
+                        letterSpacing = 2.sp
+                    )
+                )
+                Text(
+                    "$projectVersion (core $coreVersion)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFFE8E4F5),
+                    modifier = Modifier.padding(top = 2.dp, bottom = 18.dp, start = 4.dp)
+                )
 
-                    item {
-                        MenuButton(
-                            readI18n("menus.singlePlayer.skirmish", I18nType.RW),
-                            painterResource(Res.drawable.swords_30),
-                            onClick = skirmish
-                        )
-                    }
+                LunarMenuItem(readI18n("menu.mission"), painterResource(Res.drawable.destruction_30), onClick = mission)
+                LunarMenuItem(readI18n("menus.singlePlayer.skirmish", I18nType.RW), painterResource(Res.drawable.swords_30), onClick = skirmish)
+                LunarMenuItem(readI18n("menu.multiplayer"), painterResource(Res.drawable.group_30), onClick = multiplayer)
+                LunarMenuItem(readI18n("menu.mods"), painterResource(Res.drawable.dns_30), onClick = mods)
+                LunarMenuItem(readI18n("menu.sandbox"), painterResource(Res.drawable.edit_square_30), onClick = sandbox)
+                LunarMenuItem(readI18n("menu.settings"), Icons.Default.Settings, onClick = settings)
+                LunarMenuItem(readI18n("browser.resourceBrowser"), painterResource(Res.drawable.public_30), onClick = resourceBrowser)
+                LunarMenuItem(readI18n("menu.extension"), painterResource(Res.drawable.extension_30), onClick = extension)
+                LunarMenuItem(readI18n("menu.replay"), Icons.Default.PlayArrow, onClick = replay)
 
-                    item {
-                        MenuButton(
-                            readI18n("menu.multiplayer"),
-                            painterResource(Res.drawable.group_30),
-                            onClick = multiplayer
-                        )
-                    }
-
-                    item {
-                        MenuButton(
-                            readI18n("menu.mods"),
-                            painterResource(Res.drawable.dns_30),
-                            onClick = mods
-                        )
-                    }
-
-                    item {
-                        MenuButton(
-                            readI18n("menu.sandbox"),
-                            painterResource(Res.drawable.edit_square_30),
-                            onClick = sandbox
-                        )
-                    }
-
-                    item {
-                        MenuButton(
-                            readI18n("menu.settings"),
-                            Icons.Default.Settings,
-                            onClick = settings
-                        )
-                    }
-
-                    item {
-                        MenuButton(
-                            readI18n("browser.resourceBrowser"),
-                            painterResource(Res.drawable.public_30),
-                            onClick = resourceBrowser
-                        )
-                    }
-
-                    item {
-                        MenuButton(
-                            readI18n("menu.extension"),
-                            painterResource(Res.drawable.extension_30),
-                            onClick = extension
-                        )
-                    }
-
-
-                    item {
-                        MenuButton(
-                            readI18n("menu.replay"),
-                            Icons.Default.PlayArrow,
-                            onClick = replay
-                        )
-                    }
-
-                    items(extraMenuList, key = { it.title }) {
-                        MenuButton(
-                            it.title,
-                            it.iconModel,
-                            onClick = it.onClick
-                        )
-                    }
+                extraMenuList.forEach {
+                    LunarMenuItem(it.title, it.iconModel, onClick = it.onClick)
                 }
             }
-
-            Spacer(modifier = Modifier.weight(1f))
         }
 
         // 右上角覆盖层：公告 / GitHub / 关于 / 退出（本土化：删赞助与QQ群入口）
