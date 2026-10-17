@@ -56,6 +56,7 @@ import io.github.rwpp.game.base.Difficulty
 import io.github.rwpp.game.map.FogMode
 import io.github.rwpp.game.map.MapType
 import io.github.rwpp.game.team.TeamMode
+import io.github.rwpp.room.RoomPresets
 import io.github.rwpp.game.units.UnitType
 import io.github.rwpp.i18n.readI18n
 import io.github.rwpp.platform.BackHandler
@@ -1021,6 +1022,7 @@ private fun MultiplayerOption(
     var fogMode by remember { mutableStateOf(room.fogMode) }
     var startingUnits by remember { mutableStateOf(room.startingUnits) }
     var teamMode by remember { mutableStateOf(room.teamMode) }
+    var pendingTeamChanges by remember { mutableStateOf(mapOf<Int, Int>()) }
     var startingCredits by remember { mutableStateOf(room.startingCredits) }
     var maxPlayerCount by remember { mutableStateOf(room.maxPlayerCount) }
     var realIncomeMultiplier by remember { mutableStateOf(room.incomeMultiplier) }
@@ -1327,6 +1329,68 @@ private fun MultiplayerOption(
             modifier = Modifier.fillMaxWidth().padding(5.dp),
             horizontalArrangement = Arrangement.Center
         ) {
+            // 预设区：仅房主可见（选择填入/保存当前/删除），两段式——填入后仍需点"应用"生效
+            if (room.isHost || room.isHostServer) {
+                var presetIndex by remember { mutableStateOf(-1) }
+                val presetList = remember { RoomPresets.presets }
+
+                LargeDropdownMenu(
+                    modifier = Modifier.weight(.4f).padding(5.dp),
+                    label = "选择预设",
+                    items = presetList.map { it.name },
+                    selectedIndex = presetIndex,
+                    onItemSelected = { index, _ ->
+                        presetIndex = index
+                        presetList.getOrNull(index)?.let { p ->
+                            sharedControl = p.sharedControl
+                            startingCredits = p.startingCredits
+                            startingUnits = p.startingUnits
+                            fogMode = FogMode.entries[p.fogMode]
+                            aiDifficulty = p.aiDifficulty
+                            realIncomeMultiplier = p.incomeMultiplier
+                            noNukes = p.noNukes
+                            allowSpectators = p.allowSpectators
+                            gameSpeed = p.gameSpeed
+                            pendingTeamChanges = p.teamChanges.associate { it.slot to it.team }
+                        }
+                    }
+                )
+
+                var showSaveDialog by remember { mutableStateOf(false) }
+                RWTextButton("保存为预设", Modifier.padding(5.dp)) { showSaveDialog = true }
+                if (showSaveDialog) {
+                    RoomPresetNameDialog { name ->
+                        showSaveDialog = false
+                        if (name != null) {
+                            RoomPresets.save(
+                                RoomPresets.Preset(
+                                    name = name,
+                                    sharedControl = sharedControl,
+                                    startingCredits = startingCredits,
+                                    startingUnits = startingUnits,
+                                    fogMode = fogMode.ordinal,
+                                    aiDifficulty = aiDifficulty,
+                                    incomeMultiplier = realIncomeMultiplier,
+                                    noNukes = noNukes,
+                                    allowSpectators = allowSpectators,
+                                    gameSpeed = gameSpeed,
+                                    teamChanges = players.mapIndexed { slot, pl ->
+                                        RoomPresets.Preset.TeamChange(slot, pl.team)
+                                    },
+                                )
+                            )
+                        }
+                    }
+                }
+
+                if (presetIndex in presetList.indices) {
+                    RWTextButton("删除预设", Modifier.padding(5.dp)) {
+                        RoomPresets.delete(presetList[presetIndex].name)
+                        presetIndex = -1
+                    }
+                }
+            }
+
             RWTextButton(readI18n("multiplayer.room.apply")) {
                 room.applyRoomConfig(
                     maxPlayerCount,
@@ -1343,6 +1407,12 @@ private fun MultiplayerOption(
                 )
 
                 room.gameSpeed = gameSpeed
+
+                // 队伍预设：复用房主移动玩家指令逐个下发（同步由引擎保障）
+                pendingTeamChanges.forEach { (slot, team) ->
+                    players.getOrNull(slot)?.applyConfigChange(team = team)
+                }
+                pendingTeamChanges = emptyMap()
 
                 dismiss()
             }

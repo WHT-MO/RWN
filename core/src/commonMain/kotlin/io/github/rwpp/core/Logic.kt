@@ -26,6 +26,7 @@ import io.github.rwpp.net.ServerStatus
 import io.github.rwpp.net.packets.ModPacket
 import io.github.rwpp.net.packets.ServerPacket
 import io.github.rwpp.net.registerPacketListener
+import io.github.rwpp.room.RoomPresets
 import io.github.rwpp.stats.MatchStatistics
 import io.github.rwpp.ui.UI
 import kotlinx.coroutines.CoroutineScope
@@ -48,6 +49,7 @@ object Logic : Initialization {
 
         // 对局统计：加载历史 + 订阅对局结束（内部过滤仅多人对局）
         MatchStatistics.load()
+        RoomPresets.load()
         GlobalEventChannel.filter(GameOverEvent::class).subscribeAlways(priority = EventPriority.MONITOR) { e ->
             MatchStatistics.onGameOver(e)
         }
