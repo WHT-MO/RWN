@@ -97,9 +97,12 @@ fun LunarMenuItem(
                 }
             }
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // 内边距放在 Row 上而非 Column——下划线保持全宽，与悬停背景条左右对齐
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)
+        ) {
             if (icon is Painter)
                 Icon(icon, null, tint = Color(0xFF554D9E), modifier = Modifier.size(20.dp))
             else if (icon is ImageVector)
@@ -117,7 +120,6 @@ fun LunarMenuItem(
                 style = MaterialTheme.typography.titleLarge
             )
         }
-        Spacer(Modifier.height(12.dp))
         Box(
             Modifier
                 .fillMaxWidth()
