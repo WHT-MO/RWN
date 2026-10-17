@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
@@ -75,6 +76,7 @@ object UI : Initialization, IUserInterface {
     var showMissionView by mutableStateOf(false)
     var showMultiplayerView by mutableStateOf(false)
     var showReplayView by mutableStateOf(false)
+    var showMatchStats by mutableStateOf(false)
     var showSettingsView by mutableStateOf(false)
     var showModsView by mutableStateOf(false)
     var showRoomView by mutableStateOf(false)
@@ -173,7 +175,8 @@ open class UIProvider {
         sandbox: () -> Unit,
         extension: () -> Unit,
         replay: () -> Unit,
-        resourceBrowser: () -> Unit
+        resourceBrowser: () -> Unit,
+        matchStats: () -> Unit = {}
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             // 左侧竖排主菜单（月光列表），背景人物完整可见
@@ -216,9 +219,10 @@ open class UIProvider {
                 LunarMenuItem("07", readI18n("menu.extension"), panelAlpha, painterResource(Res.drawable.extension_30), onClick = extension)
                 LunarMenuItem("08", readI18n("menu.replay"), panelAlpha, Icons.Default.PlayArrow, onClick = replay)
                 LunarMenuItem("09", readI18n("menu.settings"), panelAlpha, Icons.Default.Settings, onClick = settings)
+                LunarMenuItem("10", "对局统计", panelAlpha, Icons.Default.List, onClick = matchStats)
 
                 extraMenuList.forEachIndexed { index, it ->
-                    LunarMenuItem((10 + index).toString(), it.title, panelAlpha, it.iconModel, onClick = it.onClick)
+                    LunarMenuItem((11 + index).toString(), it.title, panelAlpha, it.iconModel, onClick = it.onClick)
                 }
             }
         }

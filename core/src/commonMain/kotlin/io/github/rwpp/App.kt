@@ -61,6 +61,8 @@ import io.github.rwpp.ui.UI.showExtensionView
 import io.github.rwpp.ui.UI.showMissionView
 import io.github.rwpp.ui.UI.showModsView
 import io.github.rwpp.ui.UI.showMultiplayerView
+import io.github.rwpp.ui.MatchStatsDialog
+import io.github.rwpp.ui.UI.showMatchStats
 import io.github.rwpp.ui.UI.showReplayView
 import io.github.rwpp.ui.UI.showResourceBrowser
 import io.github.rwpp.ui.UI.showRoomView
@@ -189,6 +191,9 @@ fun App(
                             },
                             resourceBrowser = {
                                 showResourceBrowser = true
+                            },
+                            matchStats = {
+                                showMatchStats = true
                             }
                         )
                     }
@@ -261,6 +266,16 @@ fun App(
                 ) {
                     ReplaysViewDialog {
                         showReplayView = false
+                    }
+                }
+
+                AnimatedVisibility(
+                    showMatchStats,
+                    enter = if (enableAnimations) fadeIn() + expandIn() else EnterTransition.None,
+                    exit = if (enableAnimations) shrinkOut() + fadeOut() else ExitTransition.None,
+                ) {
+                    MatchStatsDialog {
+                        showMatchStats = false
                     }
                 }
 

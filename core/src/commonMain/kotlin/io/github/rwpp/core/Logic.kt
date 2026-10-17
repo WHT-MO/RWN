@@ -11,6 +11,7 @@ import io.github.rwpp.appKoin
 import io.github.rwpp.event.EventPriority
 import io.github.rwpp.event.GlobalEventChannel
 import io.github.rwpp.event.events.DisconnectEvent
+import io.github.rwpp.event.events.GameOverEvent
 import io.github.rwpp.event.events.ModCheckEvent
 import io.github.rwpp.event.events.PlayerJoinEvent
 import io.github.rwpp.game.Game
@@ -25,6 +26,7 @@ import io.github.rwpp.net.ServerStatus
 import io.github.rwpp.net.packets.ModPacket
 import io.github.rwpp.net.packets.ServerPacket
 import io.github.rwpp.net.registerPacketListener
+import io.github.rwpp.stats.MatchStatistics
 import io.github.rwpp.ui.UI
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -43,6 +45,12 @@ object Logic : Initialization {
 
     override fun init() {
         registerListeners()
+
+        // 对局统计：加载历史 + 订阅对局结束（内部过滤仅多人对局）
+        MatchStatistics.load()
+        GlobalEventChannel.filter(GameOverEvent::class).subscribeAlways(priority = EventPriority.MONITOR) { e ->
+            MatchStatistics.onGameOver(e)
+        }
 
         GlobalEventChannel.filter(PlayerJoinEvent::class).subscribeAlways(priority = EventPriority.MONITOR) { e ->
             logger.info("New player: ${e.player.name}")
