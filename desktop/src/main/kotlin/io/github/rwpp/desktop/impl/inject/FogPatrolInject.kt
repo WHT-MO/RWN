@@ -67,6 +67,11 @@ object FogPatrolInject {
 
         // 无雾基线（E=false）下引擎不维护 N 数组，无物可防
         if (!E) return Unit
+        // 观战者守卫：本机无单位（观战队/部队全灭）时引擎保持全图观战态
+        // （N=0 特殊值）——巡逻的压回(resetLocalFog)会把 0 改写成普通迷雾值 5，
+        // 破坏观战视野（实测：地形轮廓在但单位全被迷雾遮住）。此类玩家
+        // 无透视作弊动机与意义，整体跳过巡逻。
+        if (localPlayerHasNoUnits()) return Unit
         // 暂停/零步长：跳过计时器累加
         if (delta <= 0f) return Unit
 
@@ -170,6 +175,12 @@ object FogPatrolInject {
         val arr = listObj::class.java.getMethod("a").invoke(listObj) as? Array<*> ?: return emptyList()
         arr.filterIsInstance<com.corrodinggames.rts.game.units.am>()
     }.getOrDefault(emptyList())
+
+    /** 本机玩家当前是否没有任何单位（观战队/部队全灭；owner=引擎bX字段） */
+    private fun localPlayerHasNoUnits(): Boolean = runCatching {
+        val local = game.gameRoom.localPlayer ?: return false
+        allUnits().none { it.bX === local }
+    }.getOrDefault(false)
 
     /**
      * 可见格计数突变检测（深度防御）。
