@@ -83,19 +83,26 @@ object UnitInject {
         val screenX = unit.x - world.cx
         val screenY = unit.y - world.cy
         lines.forEachIndexed { i, line ->
-            // 中文等宽近似：宽=字符数×字号（渲染字体为引擎位图字体，measure 不可靠）
-            val w = line.length * size
-            B.bO.a(line, screenX - w / 2f, screenY + (if (i == 0) -9f else 9f) * cj, queueTextPaint)
+            // Align.CENTER：x 即文本中心（引擎精确居中，无需估宽）
+            B.bO.a(line, screenX, screenY + (if (i == 0) -9f else 9f) * cj, queueTextPaint)
         }
     }
 
     /**
-     * 队列文本画笔（引擎兼容层 Paint——b(int)=setColor、c 字段=textSize）。
-     * 字号每帧按缩放因子更新。
+     * 队列文本画笔（引擎兼容层 Paint——b(int)=setColor、c 字段=textSize、
+     * a(Align)=对齐。CENTER 对齐让引擎精确居中，规避估宽偏差）。
      */
     private val queueTextPaint: android.graphics.Paint by lazy {
         android.graphics.Paint().apply {
             b(-0x2E2E2F) // ARGB(226,255,255,255) 半透明白
+            c = QUEUE_TEXT_SIZE // textSize
+            // Align.CENTER 反射设置（嵌套类被混淆剥了编译期可见性）
+            runCatching {
+                val alignClass = Class.forName("android.graphics.Paint\$Align")
+                val center = alignClass.getMethod("valueOf", String::class.java)
+                    .invoke(null, "CENTER")
+                javaClass.getMethod("a", alignClass).invoke(this, center)
+            } // CENTER 对齐
         }
     }
 
