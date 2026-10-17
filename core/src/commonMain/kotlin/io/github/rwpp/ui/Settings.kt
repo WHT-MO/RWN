@@ -335,13 +335,16 @@ fun SettingsView(
                                             var schemeEditVisible by remember { mutableStateOf(false) }
 
                                             settings.unitSelectSchemes.forEachIndexed { idx, scheme ->
+                                                val validKey = scheme.key.length == 1 && scheme.key[0].isLetterOrDigit()
+                                                        || scheme.key.matches(Regex("F([1-9]|1[0-2])"))
                                                 Row(
                                                     modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                                                     verticalAlignment = Alignment.CenterVertically
                                                 ) {
                                                     Text(
-                                                        "${scheme.name}  [${scheme.key}]  ${scheme.unitTypes.size}种单位",
+                                                        "${scheme.name}  [${scheme.key}]" + if (validKey) "  ${scheme.unitTypes.size}种单位" else "  ⚠无效键位（编辑重设）",
                                                         style = MaterialTheme.typography.bodyMedium,
+                                                        color = if (validKey) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error,
                                                         modifier = Modifier.weight(1f)
                                                     )
                                                     RWTextButton("编辑", Modifier.padding(2.dp)) {

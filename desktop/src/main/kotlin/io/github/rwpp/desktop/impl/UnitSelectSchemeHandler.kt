@@ -27,8 +27,17 @@ import javax.swing.SwingUtilities
  */
 object UnitSelectSchemeHandler {
 
+    /** 诊断日志（已退役）：功能验证完成，置空避免按键级同步写盘 */
+    private fun diag(msg: String) {}
+
     @Volatile
     private var installed = false
+    /** 引擎输入锁定标志（bS 实例的 "T" 字段，混淆名直接从实例反射，不依赖类名） */
+    private val engineInputLockedField by lazy {
+        runCatching {
+            GameEngine.B().bS.javaClass.getDeclaredField("T").apply { isAccessible = true }
+        }.getOrNull()
+    }
     /** 全局单位列表（与 FogPatrolInject 同源反射） */
     private val unitListField by lazy {
         var c: Class<*>? = com.corrodinggames.rts.game.units.am::class.java
@@ -43,23 +52,65 @@ object UnitSelectSchemeHandler {
     fun install() {
         if (installed) return
         installed = true
-        KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(object : KeyEventDispatcher {
-            override fun dispatchKeyEvent(e: KeyEvent): Boolean {
-                if (e.id != KeyEvent.KEY_PRESSED) return false
-                val settings = appKoin.get<Settings>()
-                if (!settings.enableUnitSelectSchemes) return false
-                // 聊天/输入弹窗打开时跳过（AWT Dialog 抢焦点本已隔离，此为双保险）
-                if (io.github.rwpp.desktop.sendMessageDialog.isVisible) return false
-                if (e.isControlDown || e.isAltDown || e.isMetaDown || e.isShiftDown) return false
-
-                val keyName = keyNameOf(e)
-                val scheme = settings.unitSelectSchemes.firstOrNull { it.key.equals(keyName, ignoreCase = true) }
-                    ?: return false
-
-                SwingUtilities.invokeLater { selectSchemeUnits(scheme.unitTypes) }
-                return false // 不消费：同键的原生功能（若有）保持工作
+        // 三通道监听（逐级兜底）：
+        // 1. Toolkit AWTEventListener——事件队列最上游，与焦点组件无关
+        //    （实测：引擎对局中焦点会转移到非 gameCanvas 组件，前两通道在此场景全聋）
+        // 2. KeyEventDispatcher——全局分发（主菜单等 Compose 场景）
+        // 3. gameCanvas KeyListener——组件级直挂
+        java.awt.Toolkit.getDefaultToolkit().addAWTEventListener({ awtEvent ->
+            if (awtEvent is KeyEvent && awtEvent.id == KeyEvent.KEY_PRESSED) {
+                diag("queue key: ${keyNameOf(awtEvent)}")
+                dispatcher.dispatchKeyEvent(awtEvent)
+            }
+        }, java.awt.AWTEvent.KEY_EVENT_MASK)
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(dispatcher)
+        io.github.rwpp.desktop.gameCanvas.addKeyListener(object : java.awt.event.KeyAdapter() {
+            override fun keyPressed(e: KeyEvent) {
+                dispatcher.dispatchKeyEvent(e)
             }
         })
+    }
+
+    private val dispatcher = object : KeyEventDispatcher {
+        override fun dispatchKeyEvent(e: KeyEvent): Boolean {
+            if (e.id != KeyEvent.KEY_PRESSED) return false
+            if (e.isControlDown || e.isAltDown || e.isMetaDown || e.isShiftDown) return false
+            matchAndSelect(keyNameOf(e))
+            return false // 不消费：同键的原生功能（若有）保持工作
+        }
+    }
+
+    /**
+     * 引擎键盘入口（终极通道）：RwInternalGameImpl.keyPressed 直通——
+     * 引擎自身处理所有按键的必经之路（原生编队走的就是它），对局中必然活着。
+     * @param slickCode org.newdawn.slick.Input 键码
+     */
+    fun onEngineKey(slickCode: Int, keyChar: Char) {
+        val keyName = when {
+            keyChar.isLetterOrDigit() -> keyChar.uppercase()
+            slickCode in org.newdawn.slick.Input.KEY_F1..org.newdawn.slick.Input.KEY_F12 ->
+                "F${slickCode - org.newdawn.slick.Input.KEY_F1 + 1}"
+            else -> return
+        }
+        matchAndSelect(keyName)
+    }
+
+    /** 键名 → 方案匹配 → 选中（全通道共用） */
+    private fun matchAndSelect(keyName: String) {
+        val settings = runCatching { appKoin.get<Settings>() }.getOrNull() ?: return
+        if (!settings.enableUnitSelectSchemes) return
+        // 聊天/输入弹窗打开时跳过
+        if (io.github.rwpp.desktop.sendMessageDialog.isVisible) return
+        // 引擎菜单/弹窗打开时跳过（对齐原生编队：ac=弹窗非空 或 T=输入锁定）
+        runCatching {
+            val bS = GameEngine.B().bS
+            if (bS.ac != null) return
+            if (engineInputLockedField?.getBoolean(bS) == true) return
+        }
+
+        val scheme = settings.unitSelectSchemes.firstOrNull { it.key.equals(keyName, ignoreCase = true) }
+            ?: return
+        runCatching { selectSchemeUnits(scheme.unitTypes) }
     }
 
     /** AWT KeyEvent → 方案键名（与设置页展示一致：单字符大写 / F1-F12 / 数字） */

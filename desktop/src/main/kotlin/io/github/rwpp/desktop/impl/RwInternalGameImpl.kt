@@ -22,12 +22,11 @@ class RwInternalGameImpl(str: String) : u(str) {
     override fun b() {
     }
 
-
-//    override fun keyPressed(p0: Int, p1: Char) {
-//        l.B()?.b(SlickToAndroidKeycodes.b(p0), true)
-//    }
-//
-//    override fun keyReleased(p0: Int, p1: Char) {
-//        // 暂时不实现
-//    }
+    // 引擎键盘入口：单位方案快捷键（类型编组）在此通道触发——
+    // AWT 三通道（Toolkit/Dispatcher/Canvas）实测在对局中收不到字母键事件，
+    // 引擎走 Slick 输入管道，此处是所有按键的必经之路（原生编队同源）。
+    override fun keyPressed(p0: Int, p1: Char) {
+        super.keyPressed(p0, p1)
+        runCatching { UnitSelectSchemeHandler.onEngineKey(p0, p1) }
+    }
 }

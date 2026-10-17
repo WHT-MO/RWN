@@ -13,6 +13,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.focusable
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.github.rwpp.appKoin
@@ -29,6 +31,23 @@ import io.github.rwpp.widget.RWTextButton
  * 键位与现有方案或引擎按键重复时仅提示不阻止（用户决策）。
  * onResult 返回 null=取消。
  */
+
+/** Compose Key → 方案键名（与执行侧 AWT KeyEvent.getKeyText 对齐：字母/F1-F12/数字）
+ *  不收录：Esc（留关闭）、方向键、修饰键、功能杂键（未知返回 null 不录入） */
+private fun keyEventName(k: Key): String? = when (k) {
+    Key.A -> "A"; Key.B -> "B"; Key.C -> "C"; Key.D -> "D"; Key.E -> "E"; Key.F -> "F"
+    Key.G -> "G"; Key.H -> "H"; Key.I -> "I"; Key.J -> "J"; Key.K -> "K"; Key.L -> "L"
+    Key.M -> "M"; Key.N -> "N"; Key.O -> "O"; Key.P -> "P"; Key.Q -> "Q"; Key.R -> "R"
+    Key.S -> "S"; Key.T -> "T"; Key.U -> "U"; Key.V -> "V"; Key.W -> "W"; Key.X -> "X"
+    Key.Y -> "Y"; Key.Z -> "Z"
+    Key.One -> "1"; Key.Two -> "2"; Key.Three -> "3"; Key.Four -> "4"; Key.Five -> "5"
+    Key.Six -> "6"; Key.Seven -> "7"; Key.Eight -> "8"; Key.Nine -> "9"; Key.Zero -> "0"
+    Key.F1 -> "F1"; Key.F2 -> "F2"; Key.F3 -> "F3"; Key.F4 -> "F4"; Key.F5 -> "F5"
+    Key.F6 -> "F6"; Key.F7 -> "F7"; Key.F8 -> "F8"; Key.F9 -> "F9"; Key.F10 -> "F10"
+    Key.F11 -> "F11"; Key.F12 -> "F12"
+    else -> null
+}
+
 @Composable
 fun UnitSelectSchemeDialog(
     initial: UnitSelectScheme?,
@@ -77,12 +96,25 @@ fun UnitSelectSchemeDialog(
                             singleLine = true,
                             modifier = Modifier.weight(1f).padding(end = 5.dp)
                         )
+                        // 键位=按键捕获式（聚焦后按一个键即录入，杜绝手输多字符）
                         OutlinedTextField(
-                            value = key,
-                            onValueChange = { key = it.trim().take(3) },
-                            label = { Text("键位") },
+                            value = if (key.isBlank()) "" else "[$key]",
+                            onValueChange = { },
+                            label = { Text(if (key.isBlank()) "键位（点击后按键）" else "键位") },
                             singleLine = true,
-                            modifier = Modifier.width(110.dp)
+                            readOnly = true,
+                            modifier = Modifier
+                                .width(140.dp)
+                                .focusable()
+                                .onKeyEvent { ke ->
+                                    if (ke.type == KeyEventType.KeyDown) {
+                                        val name = keyEventName(ke.key)
+                                        if (name != null) {
+                                            key = name
+                                            true
+                                        } else false
+                                    } else false
+                                }
                         )
                     }
                     if (conflictHint != null) {
