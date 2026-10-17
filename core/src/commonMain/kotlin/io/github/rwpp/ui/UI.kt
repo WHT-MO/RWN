@@ -243,7 +243,7 @@ open class UIProvider {
                 }
 
                 RWIconButton(painterResource(Res.drawable.octocat_30), modifier = Modifier.padding(4.dp)) {
-                    net.openUriInBrowser("https://github.com/Minxyzgo/RWPP")
+                    net.openUriInBrowser("https://github.com/WHT-MO/RWN")
                 }
 
                 var showAbout by remember { mutableStateOf(false) }
