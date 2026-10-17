@@ -71,20 +71,19 @@ object UnitInject {
         if (counts.isEmpty()) return
         val lines = counts.entries.take(2).map { "${it.key}×${it.value}" }
 
-        // 画在工厂中心、竖排两行（用户需求：字号/宽度/行距全乘缩放因子 cj——
-        // bO.a 是屏幕空间渲染字号固定，不乘 cj 缩小全图时文字占比过大遮挡视野；
-        // "固定相对地图大小"=乘 cj 后随镜头缩放等比缩放）
+        // 画在工厂中心、竖排两行（屏幕空间固定字号+行距）。
+        // bO.a 渲染字号不受 paint.c 控制（引擎内部定字号）——"随地图缩放"
+        // 在此管线做不到。务实解：远视角（cj<0.5，文字相对建筑过大且无
+        // 阅读价值）直接隐藏，避免全图遮挡；近视角固定字号清晰可读。
         val unit = this as GameUnit
         val world = io.github.rwpp.appKoin.get<io.github.rwpp.game.Game>().world
         val B = io.github.rwpp.desktop.GameEngine.B()
-        val cj = B.cj
-        val size = QUEUE_TEXT_SIZE * cj
-        queueTextPaint.c = size
+        if (B.cj < 0.5f) return
         val screenX = unit.x - world.cx
         val screenY = unit.y - world.cy
         lines.forEachIndexed { i, line ->
             // Align.CENTER：x 即文本中心（引擎精确居中，无需估宽）
-            B.bO.a(line, screenX, screenY + (if (i == 0) -9f else 9f) * cj, queueTextPaint)
+            B.bO.a(line, screenX, screenY + (if (i == 0) -9f else 9f), queueTextPaint)
         }
     }
 
