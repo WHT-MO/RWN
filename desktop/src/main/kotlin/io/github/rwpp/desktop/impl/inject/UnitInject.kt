@@ -79,7 +79,9 @@ object UnitInject {
         val unit = this as GameUnit
         val world = io.github.rwpp.appKoin.get<io.github.rwpp.game.Game>().world
         val B = io.github.rwpp.desktop.GameEngine.B()
-        if (B.cH / B.cj > 90f) return
+        // 远视角隐藏（cX=镜头缩放因子，实测标定：近视角~0.48、全图~0.23，
+        // 阈值 0.30——注意 cj 是屏幕密度非缩放，勿混淆）
+        if (B.cX < 0.30f) return
         val screenX = unit.x - world.cx
         val screenY = unit.y - world.cy
         lines.forEachIndexed { i, line ->
