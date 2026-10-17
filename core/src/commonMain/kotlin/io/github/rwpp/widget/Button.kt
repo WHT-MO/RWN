@@ -69,21 +69,25 @@ fun MenuButton(
 }
 
 /**
- * 月光菜单项：参照浅色优雅列表样式——月牙图标 + 编号 + 标题 + 底部细分隔线，
- * 无卡片框；配色全部跟随主题（深色主题下为深色半透明，浅色下为浅色）。
- * hover 时整行轻微提亮。
+ * 月光菜单项：淡紫半透明面板（与浅色背景图互补），透明度联动背景透明度滑条，
+ * 文字固定深紫保证任何背景透明度下可读。月牙图标 + 编号 + 标题 + 底部细分隔线。
+ *
+ * @param panelAlpha 面板透明度系数（由背景透明度滑条联动）
  */
 @Composable
 fun LunarMenuItem(
     number: String,
     content: String,
+    panelAlpha: Float,
     icon: Any? = null,
     onClick: () -> Unit
 ) {
     var hovered by remember { mutableStateOf(false) }
+    val panel = if (hovered) 0.85f else 0.55f
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .background(Color(0xFFB9AFE8).copy(alpha = ((panel + panelAlpha) / 2f).coerceAtMost(1f)))
             .pointerInput(Unit) {
                 awaitPointerEventScope {
                     while (true) {
@@ -97,39 +101,38 @@ fun LunarMenuItem(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (icon is Painter)
-                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                Icon(icon, null, tint = Color(0xFF554D9E), modifier = Modifier.size(20.dp))
             else if (icon is ImageVector)
-                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                Icon(icon, null, tint = Color(0xFF554D9E), modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(16.dp))
             Text(
                 number,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f),
+                color = Color(0xFF554D9E).copy(alpha = 0.55f),
                 style = MaterialTheme.typography.labelMedium,
                 modifier = Modifier.width(28.dp)
             )
             Text(
                 content,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = Color(0xFF35315E),
                 style = MaterialTheme.typography.titleLarge
             )
         }
         Spacer(Modifier.height(12.dp))
-        // 底部细分隔线
         Box(
             Modifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+                .background(Color(0xFF554D9E).copy(alpha = 0.25f))
         )
     }
 }
 
 /** 菜单分组标题：小号字距拉开（如"开始游戏"/"客户端增强"） */
 @Composable
-fun LunarGroupTitle(title: String) {
+fun LunarGroupTitle(title: String, panelAlpha: Float) {
     Text(
         title,
-        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+        color = Color(0xFF45407A).copy(alpha = (0.65f + panelAlpha / 4f).coerceAtMost(1f)),
         style = MaterialTheme.typography.labelLarge.copy(letterSpacing = 6.sp),
         modifier = Modifier.padding(start = 14.dp, top = 18.dp, bottom = 6.dp)
     )

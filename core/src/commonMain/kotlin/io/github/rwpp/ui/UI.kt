@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.*
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,7 +55,6 @@ import io.github.rwpp.ui.UI.showQuestion
 import io.github.rwpp.ui.UI.showWarning
 import io.github.rwpp.ui.color.getTeamColor
 import io.github.rwpp.widget.LunarMenuItem
-import io.github.rwpp.widget.JostFonts
 import io.github.rwpp.widget.LunarGroupTitle
 import io.github.rwpp.widget.LunarMenuItem
 import io.github.rwpp.widget.v2.RWIconButton
@@ -186,41 +186,42 @@ open class UIProvider {
                     .padding(start = 40.dp),
                 verticalArrangement = Arrangement.Center
             ) {
-                // 标题：Jost 细体 + 字距（优雅月光感，弃用硬核方块字）
+                val panelAlpha = UI.backgroundTransparency
+
+                // 标题：花体（系统cursive）+ 深紫渐变——与浅色背景图互补
                 Text(
-                    "RWNOCTILUNA",
+                    "RWNoctiluna",
                     style = TextStyle(
-                        fontFamily = JostFonts(),
-                        fontWeight = FontWeight.Light,
+                        fontFamily = FontFamily.Cursive,
                         brush = Brush.linearGradient(
-                            listOf(Color(0xFFF5F3FF), Color(0xFFC7BFE8))
+                            listOf(Color(0xFF4A4390), Color(0xFF7A6FC9))
                         ),
-                        fontSize = 34.sp,
-                        letterSpacing = 6.sp
-                    )
+                        fontSize = 46.sp
+                    ),
+                    modifier = Modifier.padding(start = 4.dp)
                 )
                 Text(
                     "$projectVersion (core $coreVersion)",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                    color = Color(0xFF45407A).copy(alpha = (0.7f + panelAlpha / 4f).coerceAtMost(1f)),
                     modifier = Modifier.padding(top = 2.dp, bottom = 20.dp, start = 4.dp)
                 )
 
-                LunarGroupTitle("开始游戏")
-                LunarMenuItem("01", readI18n("menu.mission"), painterResource(Res.drawable.destruction_30), onClick = mission)
-                LunarMenuItem("02", readI18n("menus.singlePlayer.skirmish", I18nType.RW), painterResource(Res.drawable.swords_30), onClick = skirmish)
-                LunarMenuItem("03", readI18n("menu.multiplayer"), painterResource(Res.drawable.group_30), onClick = multiplayer)
+                LunarGroupTitle("开始游戏", panelAlpha)
+                LunarMenuItem("01", readI18n("menu.mission"), panelAlpha, painterResource(Res.drawable.destruction_30), onClick = mission)
+                LunarMenuItem("02", readI18n("menus.singlePlayer.skirmish", I18nType.RW), panelAlpha, painterResource(Res.drawable.swords_30), onClick = skirmish)
+                LunarMenuItem("03", readI18n("menu.multiplayer"), panelAlpha, painterResource(Res.drawable.group_30), onClick = multiplayer)
 
-                LunarGroupTitle("客户端增强")
-                LunarMenuItem("04", readI18n("menu.mods"), painterResource(Res.drawable.dns_30), onClick = mods)
-                LunarMenuItem("05", readI18n("menu.sandbox"), painterResource(Res.drawable.edit_square_30), onClick = sandbox)
-                LunarMenuItem("06", readI18n("browser.resourceBrowser"), painterResource(Res.drawable.public_30), onClick = resourceBrowser)
-                LunarMenuItem("07", readI18n("menu.extension"), painterResource(Res.drawable.extension_30), onClick = extension)
-                LunarMenuItem("08", readI18n("menu.replay"), Icons.Default.PlayArrow, onClick = replay)
-                LunarMenuItem("09", readI18n("menu.settings"), Icons.Default.Settings, onClick = settings)
+                LunarGroupTitle("客户端增强", panelAlpha)
+                LunarMenuItem("04", readI18n("menu.mods"), panelAlpha, painterResource(Res.drawable.dns_30), onClick = mods)
+                LunarMenuItem("05", readI18n("menu.sandbox"), panelAlpha, painterResource(Res.drawable.edit_square_30), onClick = sandbox)
+                LunarMenuItem("06", readI18n("browser.resourceBrowser"), panelAlpha, painterResource(Res.drawable.public_30), onClick = resourceBrowser)
+                LunarMenuItem("07", readI18n("menu.extension"), panelAlpha, painterResource(Res.drawable.extension_30), onClick = extension)
+                LunarMenuItem("08", readI18n("menu.replay"), panelAlpha, Icons.Default.PlayArrow, onClick = replay)
+                LunarMenuItem("09", readI18n("menu.settings"), panelAlpha, Icons.Default.Settings, onClick = settings)
 
                 extraMenuList.forEachIndexed { index, it ->
-                    LunarMenuItem((10 + index).toString(), it.title, it.iconModel, onClick = it.onClick)
+                    LunarMenuItem((10 + index).toString(), it.title, panelAlpha, it.iconModel, onClick = it.onClick)
                 }
             }
         }
