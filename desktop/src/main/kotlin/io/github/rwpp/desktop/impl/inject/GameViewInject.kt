@@ -54,6 +54,62 @@ object GameViewInject {
                 ShowVisionRange
             )
         }
+
+        // 排行榜（观战者）：仅本机玩家当前无单位时提供——引擎原生面板展示
+        // 全体经济/部队价值，参战玩家持有即信息透视（作弊），故严格门控。
+        // 无单位=观战队玩家 or 部队全灭者；动态判定，获得单位即不再显示。
+        if (localPlayerHasNoUnits()) {
+            buttons!!.add(ShowLeaderboard)
+        }
+    }
+
+    /** 全局单位列表（与 FogPatrolInject 同源：反射 am 继承链 er 字段，调 a()） */
+    private val unitListField by lazy {
+        var c: Class<*>? = com.corrodinggames.rts.game.units.am::class.java
+        while (c != null) {
+            val f = runCatching { c!!.getDeclaredField("er").apply { isAccessible = true } }.getOrNull()
+            if (f != null) return@lazy f
+            c = c.superclass
+        }
+        null
+    }
+
+    /** 本机玩家当前是否没有任何单位（动态判定；World.getAllUnits 为未实现TODO不可用）
+     *  单位owner=引擎bX字段（同GameUnitImpl.player桥接），与本机Player身份比较 */
+    private fun localPlayerHasNoUnits(): Boolean {
+        return try {
+            val local = room.localPlayer ?: return false
+            val listObj = unitListField?.get(null) ?: return false
+            val arr = listObj::class.java.getMethod("a").invoke(listObj) as? Array<*> ?: return false
+            arr.filterIsInstance<com.corrodinggames.rts.game.units.am>()
+                .none { it.bX === local }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /** 打开引擎原生排行榜（回放同款面板，点击循环切换排序：无/收入/部队价值/建筑/总价值/现金） */
+    object ShowLeaderboard : p("c_show_leaderboard") {
+        override fun b(): String? {
+            return "排行榜"
+        }
+
+        override fun a(): String? {
+            return "Leaderboard"
+        }
+
+        override fun compareTo(other: Any?): Int {
+            return 0
+        }
+
+        override fun c(amVar: com.corrodinggames.rts.game.units.am?, z: Boolean): Boolean {
+            try {
+                GameEngine.B().cg.c()
+            } catch (e: Exception) {
+                // 面板不可用（理论不该发生：cg 在开局即初始化）
+            }
+            return true
+        }
     }
 
     object ShowAttackRange : p("c__cut_enable") {
