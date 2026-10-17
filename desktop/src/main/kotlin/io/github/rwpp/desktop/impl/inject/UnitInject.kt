@@ -73,12 +73,13 @@ object UnitInject {
 
         // 画在工厂中心、竖排两行（屏幕空间固定字号+行距）。
         // bO.a 渲染字号不受 paint.c 控制（引擎内部定字号）——"随地图缩放"
-        // 在此管线做不到。务实解：远视角（cj<0.5，文字相对建筑过大且无
-        // 阅读价值）直接隐藏，避免全图遮挡；近视角固定字号清晰可读。
+        // 在此管线做不到。务实解：远视角（可见世界宽度>90 格，文字相对
+        // 建筑过大且无阅读价值）直接隐藏，避免全图遮挡；近视角固定字号。
+        // 判定用可见世界格数（屏幕宽/cj）而非 cj 绝对值——分辨率无关。
         val unit = this as GameUnit
         val world = io.github.rwpp.appKoin.get<io.github.rwpp.game.Game>().world
         val B = io.github.rwpp.desktop.GameEngine.B()
-        if (B.cj < 0.5f) return
+        if (B.cH / B.cj > 90f) return
         val screenX = unit.x - world.cx
         val screenY = unit.y - world.cy
         lines.forEachIndexed { i, line ->
