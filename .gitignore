@@ -29,3 +29,4 @@ generated_lib/
 hs_err_pid*
 .kotlin/
 /dist/
+.tmp-test/
