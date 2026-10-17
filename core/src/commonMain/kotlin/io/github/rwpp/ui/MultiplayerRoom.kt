@@ -1337,7 +1337,11 @@ private fun MultiplayerOption(
                 LargeDropdownMenu(
                     modifier = Modifier.weight(.4f).padding(5.dp),
                     label = "选择预设",
-                    items = presetList.map { it.name },
+                    items = presetList.map {
+                        if (it.createdAt > 0)
+                            "${it.name}（${java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.getDefault()).format(java.util.Date(it.createdAt))}）"
+                        else it.name
+                    },
                     selectedIndex = presetIndex,
                     onItemSelected = { index, _ ->
                         presetIndex = index
@@ -1380,6 +1384,7 @@ private fun MultiplayerOption(
                                     allowSpectators = allowSpectators,
                                     gameSpeed = gameSpeed,
                                     teamChanges = teamChanges,
+                                    createdAt = System.currentTimeMillis(),
                                 )
                             )
                         }

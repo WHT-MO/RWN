@@ -123,9 +123,6 @@ interface PlayerImpl : Player {
         var z = false
         var i = 0
         var z2 = false
-        val valueOf: Int?
-        val valueOf2: Int?
-        val valueOf3: Int?
         if(intValue == -3) {
             z2 = true
         } else {
@@ -186,57 +183,31 @@ interface PlayerImpl : Player {
         } catch(e2: NumberFormatException) {
             logger.error(e2.stackTraceToString())
         }
-        if(self.w) {
-            val intValue2: Int = (aiDifficulty) ?: -99
-            valueOf3 = if(intValue2 == -99) {
-                null
-            } else {
-                intValue2
-            }
-            if(self.z != valueOf3) {
+        // null 参数 = 不修改该状态（此前 null 会清空覆盖值——房主移动玩家
+        // 误清 AI 难度/初始单位/颜色的上游 bug；显式清空走 -99）
+        if(self.w && aiDifficulty != null) {
+            val v = if(aiDifficulty == -99) null else aiDifficulty
+            if(self.z != v) {
                 if(room.isHost) {
-                    self.z = valueOf3
-                } else {
-                    //l.e("aiDifficultyOverride: not server or proxy controller")
+                    self.z = v
                 }
             }
         }
-        val intValue3 = startingUnits
-        // l.e("startingUnits now: $intValue3")
-        if(intValue3 != null) {
-            if(intValue3 == -99) {
-                valueOf = null
-            } else {
-                valueOf = intValue3
-            }
-            if(self.A != valueOf) {
+        if(startingUnits != null) {
+            val v = if(startingUnits == -99) null else startingUnits
+            if(self.A != v) {
                 if(room.isHost) {
-                    self.A = valueOf
-                } else {
-                    // l.e("startingUnitOverride: not server or proxy controller")
+                    self.A = v
                 }
             }
-        } else {
-            self.A = null
         }
-
-        val intValue4 = color
-        // l.e("playerColor now: $intValue4")
-        if(intValue4 != null) {
-            if(intValue4 == -99) {
-                valueOf2 = null
-            } else {
-                valueOf2 = intValue4
-            }
-            if(self.C != valueOf2) {
+        if(color != null) {
+            val v = if(color == -99) null else color
+            if(self.C != v) {
                 if(room.isHost) {
-                    self.C = valueOf2
-                } else {
-                    // l.e("colorOverride: not server or proxy controller")
+                    self.C = v
                 }
             }
-        } else {
-            self.C = null
         }
 
 

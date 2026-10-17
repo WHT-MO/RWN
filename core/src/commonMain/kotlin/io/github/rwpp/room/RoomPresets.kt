@@ -33,6 +33,8 @@ object RoomPresets {
         val gameSpeed: Float,
         /** 按玩家槽位(0基)的移动规则；空 = 不含队伍预设 */
         val teamChanges: List<TeamChange> = emptyList(),
+        /** 保存时间戳（毫秒）；0=旧档无时间 */
+        val createdAt: Long = 0,
     ) {
         /**
          * 一条移动规则：序号 slot 玩家 → 位置 targetSpawn（出生点，0基；-1=不换位置）

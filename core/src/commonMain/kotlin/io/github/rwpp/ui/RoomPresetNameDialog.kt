@@ -47,7 +47,7 @@ fun RoomPresetNameDialog(
                 Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
                     Text("保存为预设", style = MaterialTheme.typography.titleLarge)
                     Text(
-                        "规则：移动序号x玩家到序号x位置、x队伍（序号按玩家列表从0计；位置0-9，留空不换位；目标位被占时自动交换）",
+                        "规则：移动序号x玩家到序号x位置、x队伍（序号按玩家列表从1计；位置1-10对应出生点，留空只换队伍；目标位被占时自动交换）",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                         modifier = Modifier.padding(top = 2.dp, bottom = 8.dp)
@@ -75,14 +75,14 @@ fun RoomPresetNameDialog(
                             ) {
                                 Text("序号", style = MaterialTheme.typography.bodyMedium)
                                 NumberBox(
-                                    value = rule.slot,
-                                    onValue = { v -> rules = rules.replaceAt(index, rule.copy(slot = v)) },
+                                    value = rule.slot + 1,
+                                    onValue = { v -> rules = rules.replaceAt(index, rule.copy(slot = v - 1)) },
                                     modifier = Modifier.width(64.dp).padding(horizontal = 3.dp)
                                 )
                                 Text("→位置", style = MaterialTheme.typography.bodyMedium)
                                 NumberBox(
-                                    value = rule.targetSpawn,
-                                    onValue = { v -> rules = rules.replaceAt(index, rule.copy(targetSpawn = v)) },
+                                    value = rule.targetSpawn + 1,
+                                    onValue = { v -> rules = rules.replaceAt(index, rule.copy(targetSpawn = v - 1)) },
                                     modifier = Modifier.width(64.dp).padding(horizontal = 3.dp)
                                 )
                                 Text("队伍", style = MaterialTheme.typography.bodyMedium)
@@ -107,13 +107,23 @@ fun RoomPresetNameDialog(
 
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         RWTextButton("取消", Modifier.padding(5.dp)) { dismiss(); onResult(null) }
+                        var nameError by remember { mutableStateOf(false) }
+                        if (nameError) {
+                            Text(
+                                "请输入预设名称",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(end = 5.dp)
+                            )
+                        }
                         RWTextButton("保存", Modifier.padding(5.dp)) {
                             val trimmed = name.trim()
-                            dismiss()
-                            onResult(
-                                if (trimmed.isEmpty()) null
-                                else trimmed to rules.filter { it.slot >= 0 && it.targetSpawn >= -1 }
-                            )
+                            if (trimmed.isEmpty()) {
+                                nameError = true
+                            } else {
+                                dismiss()
+                                onResult(trimmed to rules.filter { it.slot >= 0 && it.targetSpawn >= -1 })
+                            }
                         }
                     }
                 }
