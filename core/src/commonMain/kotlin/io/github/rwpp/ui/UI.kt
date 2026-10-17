@@ -55,7 +55,6 @@ import io.github.rwpp.ui.UI.showQuestion
 import io.github.rwpp.ui.UI.showWarning
 import io.github.rwpp.ui.color.getTeamColor
 import io.github.rwpp.widget.LunarMenuItem
-import io.github.rwpp.widget.LunarGroupTitle
 import io.github.rwpp.widget.LunarMenuItem
 import io.github.rwpp.widget.v2.RWIconButton
 import org.jetbrains.compose.resources.painterResource
@@ -207,12 +206,10 @@ open class UIProvider {
                     modifier = Modifier.padding(top = 2.dp, bottom = 20.dp, start = 4.dp)
                 )
 
-                LunarGroupTitle("开始游戏", panelAlpha)
                 LunarMenuItem("01", readI18n("menu.mission"), panelAlpha, painterResource(Res.drawable.destruction_30), onClick = mission)
                 LunarMenuItem("02", readI18n("menus.singlePlayer.skirmish", I18nType.RW), panelAlpha, painterResource(Res.drawable.swords_30), onClick = skirmish)
                 LunarMenuItem("03", readI18n("menu.multiplayer"), panelAlpha, painterResource(Res.drawable.group_30), onClick = multiplayer)
 
-                LunarGroupTitle("客户端增强", panelAlpha)
                 LunarMenuItem("04", readI18n("menu.mods"), panelAlpha, painterResource(Res.drawable.dns_30), onClick = mods)
                 LunarMenuItem("05", readI18n("menu.sandbox"), panelAlpha, painterResource(Res.drawable.edit_square_30), onClick = sandbox)
                 LunarMenuItem("06", readI18n("browser.resourceBrowser"), panelAlpha, painterResource(Res.drawable.public_30), onClick = resourceBrowser)
