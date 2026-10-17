@@ -10,9 +10,7 @@ package io.github.rwpp.ui
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -30,10 +28,9 @@ import io.github.rwpp.widget.ExitButton
 import io.github.rwpp.widget.RWTextButton
 
 /**
- * 预设保存对话框：命名 + 队伍调整规则编辑。
- * 规则 = "移动序号x玩家到x队伍"（序号为房间玩家列表槽位，0基），可增删。
- * 初始规则为当前房间玩家的队伍快照，可自由修改。
- * 返回 (名称, 队伍规则)；名称空/取消返回 null。
+ * 预设保存对话框：命名 + 移动规则编辑。
+ * 规则 = "移动序号x玩家到序号x位置、x队伍"（位置=出生点位0基；-1=不换位）。
+ * 初始为当前玩家的位置+队伍快照，可增删改。目标位被占时应用环节自动交换。
  */
 @Composable
 fun RoomPresetNameDialog(
@@ -44,13 +41,13 @@ fun RoomPresetNameDialog(
     var rules by remember { mutableStateOf(initialTeamChanges) }
 
     AnimatedAlertDialog(true, onDismissRequest = { onResult(null) }) { dismiss ->
-        BorderCard(modifier = Modifier.size(420.dp, 460.dp)) {
+        BorderCard(modifier = Modifier.size(460.dp, 480.dp)) {
             Box {
                 ExitButton { dismiss(); onResult(null) }
                 Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
                     Text("保存为预设", style = MaterialTheme.typography.titleLarge)
                     Text(
-                        "队伍规则：移动序号x玩家到x队伍（序号按房间玩家列表从0计）",
+                        "规则：移动序号x玩家到序号x位置、x队伍（序号按玩家列表从0计；位置0-9，留空不换位；目标位被占时自动交换）",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                         modifier = Modifier.padding(top = 2.dp, bottom = 8.dp)
@@ -65,36 +62,37 @@ fun RoomPresetNameDialog(
                     )
 
                     Text(
-                        "队伍调整规则",
+                        "移动规则",
                         style = MaterialTheme.typography.labelLarge,
                         modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
                     )
 
-                    // 规则列表（可滚动）
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                    ) {
+                    LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
                         itemsIndexed(rules) { index, rule ->
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("移动序号", style = MaterialTheme.typography.bodyMedium)
+                                Text("序号", style = MaterialTheme.typography.bodyMedium)
                                 NumberBox(
                                     value = rule.slot,
                                     onValue = { v -> rules = rules.replaceAt(index, rule.copy(slot = v)) },
-                                    modifier = Modifier.width(70.dp).padding(horizontal = 4.dp)
+                                    modifier = Modifier.width(64.dp).padding(horizontal = 3.dp)
                                 )
-                                Text("到队伍", style = MaterialTheme.typography.bodyMedium)
+                                Text("→位置", style = MaterialTheme.typography.bodyMedium)
                                 NumberBox(
-                                    value = rule.team,
-                                    onValue = { v -> rules = rules.replaceAt(index, rule.copy(team = v)) },
-                                    modifier = Modifier.width(70.dp).padding(horizontal = 4.dp)
+                                    value = rule.targetSpawn,
+                                    onValue = { v -> rules = rules.replaceAt(index, rule.copy(targetSpawn = v)) },
+                                    modifier = Modifier.width(64.dp).padding(horizontal = 3.dp)
+                                )
+                                Text("队伍", style = MaterialTheme.typography.bodyMedium)
+                                NumberBox(
+                                    value = rule.targetTeam,
+                                    onValue = { v -> rules = rules.replaceAt(index, rule.copy(targetTeam = v)) },
+                                    modifier = Modifier.width(64.dp).padding(horizontal = 3.dp)
                                 )
                                 Spacer(Modifier.weight(1f))
-                                RWTextButton("删除", Modifier.padding(2.dp)) {
+                                RWTextButton("删", Modifier.padding(2.dp)) {
                                     rules = rules.filterIndexed { i, _ -> i != index }
                                 }
                             }
@@ -103,9 +101,8 @@ fun RoomPresetNameDialog(
                         }
                     }
 
-                    // 添加规则
-                    RWTextButton("+ 添加队伍调整", Modifier.padding(vertical = 4.dp)) {
-                        rules = rules + RoomPresets.Preset.TeamChange(rules.size, 1)
+                    RWTextButton("+ 添加移动规则", Modifier.padding(vertical = 4.dp)) {
+                        rules = rules + RoomPresets.Preset.TeamChange(rules.size, rules.size, 1)
                     }
 
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
@@ -115,7 +112,7 @@ fun RoomPresetNameDialog(
                             dismiss()
                             onResult(
                                 if (trimmed.isEmpty()) null
-                                else trimmed to rules.filter { it.slot >= 0 && it.team >= 1 }
+                                else trimmed to rules.filter { it.slot >= 0 && it.targetSpawn >= -1 }
                             )
                         }
                     }
@@ -130,12 +127,12 @@ private fun List<RoomPresets.Preset.TeamChange>.replaceAt(index: Int, v: RoomPre
 
 @Composable
 private fun NumberBox(value: Int, onValue: (Int) -> Unit, modifier: Modifier = Modifier) {
-    var text by remember(value) { mutableStateOf(value.toString()) }
+    var text by remember(value) { mutableStateOf(if (value < 0) "" else value.toString()) }
     OutlinedTextField(
         value = text,
         onValueChange = {
-            text = it.filter(Char::isDigit).take(3)
-            onValue(text.toIntOrNull() ?: 0)
+            text = it.filter(Char::isDigit).take(2)
+            onValue(text.toIntOrNull() ?: -1)
         },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),

@@ -1022,7 +1022,7 @@ private fun MultiplayerOption(
     var fogMode by remember { mutableStateOf(room.fogMode) }
     var startingUnits by remember { mutableStateOf(room.startingUnits) }
     var teamMode by remember { mutableStateOf(room.teamMode) }
-    var pendingTeamChanges by remember { mutableStateOf(mapOf<Int, Int>()) }
+    var pendingTeamChanges by remember { mutableStateOf(emptyList<RoomPresets.Preset.TeamChange>()) }
     var startingCredits by remember { mutableStateOf(room.startingCredits) }
     var maxPlayerCount by remember { mutableStateOf(room.maxPlayerCount) }
     var realIncomeMultiplier by remember { mutableStateOf(room.incomeMultiplier) }
@@ -1351,7 +1351,7 @@ private fun MultiplayerOption(
                             noNukes = p.noNukes
                             allowSpectators = p.allowSpectators
                             gameSpeed = p.gameSpeed
-                            pendingTeamChanges = p.teamChanges.associate { it.slot to it.team }
+                            pendingTeamChanges = p.teamChanges
                         }
                     }
                 )
@@ -1361,7 +1361,7 @@ private fun MultiplayerOption(
                 if (showSaveDialog) {
                     RoomPresetNameDialog(
                         initialTeamChanges = players.mapIndexed { slot, pl ->
-                            RoomPresets.Preset.TeamChange(slot, pl.team)
+                            RoomPresets.Preset.TeamChange(slot, pl.spawnPoint, pl.team)
                         }
                     ) { result ->
                         showSaveDialog = false
@@ -1411,11 +1411,15 @@ private fun MultiplayerOption(
 
                 room.gameSpeed = gameSpeed
 
-                // 队伍预设：复用房主移动玩家指令逐个下发（同步由引擎保障）
-                pendingTeamChanges.forEach { (slot, team) ->
-                    players.getOrNull(slot)?.applyConfigChange(team = team)
+                // 移动预设：解析为玩家快照+交换算法，复用房主移动玩家指令
+                // （spawnPoint+team 一次下发，同步由引擎保障）
+                if (pendingTeamChanges.isNotEmpty()) {
+                    RoomPresets.resolveMoves(players, pendingTeamChanges).forEach { (player, move) ->
+                        val (spawn, team) = move
+                        player.applyConfigChange(spawnPoint = spawn, team = team)
+                    }
+                    pendingTeamChanges = emptyList()
                 }
-                pendingTeamChanges = emptyMap()
 
                 dismiss()
             }

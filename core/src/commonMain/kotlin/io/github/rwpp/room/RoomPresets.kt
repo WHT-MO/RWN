@@ -31,11 +31,74 @@ object RoomPresets {
         val noNukes: Boolean,
         val allowSpectators: Boolean,
         val gameSpeed: Float,
-        /** 按玩家槽位(0基)的队伍分配；空 = 不含队伍预设 */
+        /** 按玩家槽位(0基)的移动规则；空 = 不含队伍预设 */
         val teamChanges: List<TeamChange> = emptyList(),
     ) {
+        /**
+         * 一条移动规则：序号 slot 玩家 → 位置 targetSpawn（出生点，0基；-1=不换位置）
+         * 与队伍 targetTeam（1基；独立于位置）。
+         */
         @Serializable
-        data class TeamChange(val slot: Int, val team: Int)
+        data class TeamChange(
+            val slot: Int,
+            val targetSpawn: Int = -1,
+            val targetTeam: Int = 1,
+        )
+    }
+
+    /**
+     * 把规则解析为"玩家身份快照 + 最终位置/队伍"，解决多步交换的序号漂移：
+     * 应用瞬间一次性解析（players 为当前房间玩家列表），之后交换基于
+     * Player 引用，不受列表刷新影响。
+     * 算法：串行处理，目标位被占则与占用者交换位置；占用者队伍由其自身
+     * 规则决定（无规则则保持）；未出现在规则中的玩家若被挤出位置则移入空位。
+     */
+    fun resolveMoves(
+        players: List<io.github.rwpp.game.Player>,
+        rules: List<Preset.TeamChange>,
+    ): List<Pair<io.github.rwpp.game.Player, Pair<Int, Int>>> {
+        // 快照：每条规则锚定应用时刻的玩家（防前序交换污染序号）
+        data class Move(val player: io.github.rwpp.game.Player, val spawn: Int, val team: Int)
+        val moves = rules.mapNotNull { r ->
+            val p = players.getOrNull(r.slot) ?: return@mapNotNull null
+            if (r.targetSpawn < -1) return@mapNotNull null
+            Move(p, r.targetSpawn, r.targetTeam.coerceAtLeast(1))
+        }
+        // 每玩家只保留首条规则（重复规则以第一条为准）
+        val byPlayer = moves.associateBy { it.player }
+        val occupied = HashMap<Int, io.github.rwpp.game.Player>() // spawn -> player（当前态，初始为实况）
+        players.forEach { p ->
+            if (p.spawnPoint in 0..9) occupied[p.spawnPoint] = p
+        }
+        val finalSpawn = HashMap<io.github.rwpp.game.Player, Int>()
+        val finalTeam = HashMap<io.github.rwpp.game.Player, Int>()
+
+        for (m in byPlayer.values) {
+            if (m.spawn == -1) { // 只改队伍
+                finalTeam[m.player] = m.team
+                continue
+            }
+            val occupant = occupied[m.spawn]
+            val oldSpawn = m.player.spawnPoint
+            if (occupant == null || occupant == m.player) {
+                // 空位或原地：直接移
+                occupied.remove(oldSpawn)
+                occupied[m.spawn] = m.player
+                finalSpawn[m.player] = m.spawn
+            } else {
+                // 交换：占用者移到被移动者的原位置（若其原位无效则留给后续空位逻辑）
+                occupied[oldSpawn] = occupant
+                occupied[m.spawn] = m.player
+                finalSpawn[m.player] = m.spawn
+                if (oldSpawn in 0..9) finalSpawn[occupant] = oldSpawn
+            }
+            finalTeam[m.player] = m.team
+        }
+        return players.mapNotNull { p ->
+            val sp = finalSpawn[p] ?: return@mapNotNull null
+            val tm = finalTeam[p] ?: p.team
+            p to (sp to tm)
+        }
     }
 
     @Volatile
